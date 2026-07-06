@@ -1,0 +1,29 @@
+[package]
+name = "ssr-core"
+description = "Moteur de capture d'actions utilisateur (clics, fenêtres, texte) — coeur de Support Step Recorder."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+device_query.workspace = true
+xcap.workspace = true
+webp.workspace = true
+image.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+zip.workspace = true
+chrono.workspace = true
+
+# Backend d'entrées pour Wayland (lecture de /dev/input).
+[target.'cfg(target_os = "linux")'.dependencies]
+evdev = "0.13"
+# Capture d'écran via le portail xdg-desktop-portal (ScreenCast) + PipeWire.
+# pipewire est épinglé sur 0.9 pour partager le même `links = pipewire-0.3`
+# que xcap (évite un conflit de bibliothèque native).
+# ashpd sur l'exécuteur async-io : un réacteur global (thread dédié) pilote l'IO
+# zbus, donc on peut bloquer depuis notre thread PipeWire sans runtime tokio.
+ashpd = { version = "0.13", default-features = false, features = ["async-io", "screencast"] }
+pipewire = "0.9"
+pollster = "0.4"

@@ -1,0 +1,27 @@
+[workspace]
+resolver = "2"
+members = ["crates/ssr-core", "crates/ssr-gui"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/Le-Syl21/support-step-recorder"
+
+[workspace.dependencies]
+device_query = "4.0"
+xcap = "0.9"
+webp = "0.3"
+image = "0.25"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+zip = "2"
+chrono = "0.4"
+
+# Binaire de release compact (à livrer pour le support).
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1
+opt-level = "s"
+panic = "abort"

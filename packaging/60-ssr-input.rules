@@ -1,0 +1,15 @@
+# Support Step Recorder — accès en lecture aux périphériques d'entrée.
+#
+# Donne à l'utilisateur de la session active (seat) un ACL de lecture sur les
+# périphériques /dev/input via systemd-logind (uaccess). Cela permet le backend
+# evdev sous Wayland SANS ajouter l'utilisateur au groupe `input`.
+#
+# ⚠️ Sécurité : ceci autorise les applications lancées par l'utilisateur actif à
+# lire les entrées clavier/souris (capture passive possible). C'est le compromis
+# assumé pour un enregistreur d'actions de type PSR sous Wayland.
+#
+# ⚠️ Le préfixe « 60- » est volontaire : le tag uaccess doit être posé AVANT
+# /usr/lib/udev/rules.d/73-seat-late.rules, qui n'applique l'ACL (RUN builtin
+# uaccess) que si le tag est déjà présent quand cette règle s'exécute. Une règle
+# « 99- » poserait le tag trop tard et l'ACL ne serait jamais appliquée.
+KERNEL=="event*", SUBSYSTEM=="input", TAG+="uaccess"

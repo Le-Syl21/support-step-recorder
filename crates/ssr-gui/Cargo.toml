@@ -1,0 +1,21 @@
+[package]
+name = "ssr-gui"
+description = "Interface egui/glow de Support Step Recorder : enregistrer, revoir et exporter une session."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "ssr"
+path = "src/main.rs"
+
+[dependencies]
+ssr-core = { path = "../ssr-core" }
+eframe = { version = "0.35", features = ["glow"] }
+egui = "0.35"
+image = { workspace = true }
+chrono = { workspace = true }
+# Dialogue « Enregistrer sous » natif et multi-OS (Windows/macOS natifs ;
+# Linux via le portail xdg-desktop-portal, sans dépendance GTK).
+rfd = { version = "0.17", default-features = false, features = ["xdg-portal", "pollster"] }

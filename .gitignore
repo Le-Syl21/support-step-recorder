@@ -1,0 +1,15 @@
+# Artefacts de compilation
+/target
+
+# Sessions et exports produits à l'exécution
+/ssr-sessions
+*.zip
+
+# Captures d'écran / temporaires laissés à la racine
+/Capture*.png
+/*.tmp
+
+# Divers OS / éditeurs
+.DS_Store
+Thumbs.db
+*.swp
