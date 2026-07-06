@@ -1,10 +1,17 @@
 [package]
-name = "ssr-core"
+name = "support-step-recorder-core"
 description = "Moteur de capture d'actions utilisateur (clics, fenêtres, texte) — coeur de Support Step Recorder."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+keywords = ["screen-recorder", "psr", "wayland", "screenshot", "automation"]
+categories = ["multimedia", "gui"]
+
+# Le package publie sous « support-step-recorder-core », mais la bibliothèque
+# reste importée comme `ssr_core` dans le code.
+[lib]
+name = "ssr_core"
 
 [dependencies]
 device_query.workspace = true

@@ -39,7 +39,13 @@ pub struct Frame {
 impl Frame {
     /// Convertit la frame en RGBA contigu (`None` si format non géré).
     pub fn to_rgba(&self) -> Option<Vec<u8>> {
-        to_rgba(&self.bytes, self.width, self.height, self.stride, self.format)
+        to_rgba(
+            &self.bytes,
+            self.width,
+            self.height,
+            self.stride,
+            self.format,
+        )
     }
 
     /// Convertit en RGBA **recadré sur la zone non-noire**.
@@ -58,7 +64,9 @@ impl Frame {
         // Boîte englobante du contenu non-noir (seuil pour absorber le bruit).
         const THRESHOLD: u8 = 8;
         let is_content = |p: usize| {
-            self.bytes[p] >= THRESHOLD || self.bytes[p + 1] >= THRESHOLD || self.bytes[p + 2] >= THRESHOLD
+            self.bytes[p] >= THRESHOLD
+                || self.bytes[p + 1] >= THRESHOLD
+                || self.bytes[p + 2] >= THRESHOLD
         };
         let (mut x0, mut y0, mut x1, mut y1) = (w, h, 0usize, 0usize);
         let mut found = false;
@@ -451,7 +459,9 @@ fn restore_token_path() -> Option<PathBuf> {
 
 fn load_restore_token() -> Option<String> {
     let p = restore_token_path()?;
-    std::fs::read_to_string(p).ok().map(|s| s.trim().to_string())
+    std::fs::read_to_string(p)
+        .ok()
+        .map(|s| s.trim().to_string())
 }
 
 fn save_restore_token(token: &str) {

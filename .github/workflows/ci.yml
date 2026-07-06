@@ -1,0 +1,256 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpipewire-0.3-dev libspa-0.2-dev clang \
+            libxkbcommon-dev libwayland-dev libgl1-mesa-dev libdbus-1-dev \
+            libx11-dev libxext-dev libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxcb-randr0-dev libxcb-shm0-dev
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+  build:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            target: x86_64-unknown-linux-gnu
+            label: linux-x86_64
+          - os: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            label: linux-aarch64
+          - os: macos-latest
+            target: aarch64-apple-darwin
+            label: macos-arm64
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            label: macos-x86_64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            label: windows-x86_64
+
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.label }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpipewire-0.3-dev libspa-0.2-dev clang \
+            libxkbcommon-dev libwayland-dev libgl1-mesa-dev libdbus-1-dev \
+            libx11-dev libxext-dev libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxcb-randr0-dev libxcb-shm0-dev
+
+      - name: Build (release)
+        run: cargo build --release --workspace --target ${{ matrix.target }}
+
+      - name: Run tests
+        # On ne peut pas exécuter des binaires x86_64 sur le runner macOS arm64.
+        if: matrix.target != 'x86_64-apple-darwin'
+        run: cargo test --workspace --target ${{ matrix.target }}
+
+      # --- Signature & notarisation Apple ---
+      - name: Import Apple Developer ID certificate
+        if: runner.os == 'macOS'
+        env:
+          APPLE_CERTIFICATE_P12: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          KEYCHAIN_PASSWORD=$(openssl rand -base64 32)
+          KEYCHAIN_PATH=$RUNNER_TEMP/signing.keychain-db
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          echo "$APPLE_CERTIFICATE_P12" | base64 --decode > $RUNNER_TEMP/certificate.p12
+          security import $RUNNER_TEMP/certificate.p12 \
+            -k "$KEYCHAIN_PATH" \
+            -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+          security list-keychain -d user -s "$KEYCHAIN_PATH"
+          security set-key-partition-list \
+            -S apple-tool:,apple: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+      - name: Sign binary (macOS)
+        if: runner.os == 'macOS'
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          codesign --force --options runtime \
+            --sign "Developer ID Application: Sylvain Gargasson ($APPLE_TEAM_ID)" \
+            --timestamp \
+            target/${{ matrix.target }}/release/ssr
+
+      - name: Notarize binary (macOS, tags only)
+        if: runner.os == 'macOS' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          ditto -c -k --keepParent \
+            target/${{ matrix.target }}/release/ssr \
+            $RUNNER_TEMP/ssr.zip
+
+          # Soumission + attente, avec timeout et jusqu'à 3 tentatives (5/15/45 min).
+          notarize_once() {
+            local zip="$1" timeout="$2"
+            local output
+            output=$(xcrun notarytool submit "$zip" \
+              --apple-id "$APPLE_ID" \
+              --password "$APPLE_ID_PASSWORD" \
+              --team-id "$APPLE_TEAM_ID" \
+              --verbose 2>&1)
+            echo "$output"
+            local sub_id
+            sub_id=$(echo "$output" | awk '/id:/{print $2; exit}')
+            [ -n "$sub_id" ] || { echo "échec: pas d'ID de soumission"; return 1; }
+            echo "soumis (id: $sub_id)"
+
+            local deadline=$((SECONDS + timeout))
+            while [ $SECONDS -lt $deadline ]; do
+              sleep 30
+              local info
+              info=$(xcrun notarytool info "$sub_id" \
+                --apple-id "$APPLE_ID" \
+                --password "$APPLE_ID_PASSWORD" \
+                --team-id "$APPLE_TEAM_ID" 2>&1) || { echo "erreur réseau, on repoll…"; continue; }
+              local status
+              status=$(echo "$info" | awk '/status:/{print $2; exit}')
+              echo "statut: $status"
+              case "$status" in
+                Accepted) return 0 ;;
+                Invalid|Rejected)
+                  xcrun notarytool log "$sub_id" \
+                    --apple-id "$APPLE_ID" \
+                    --password "$APPLE_ID_PASSWORD" \
+                    --team-id "$APPLE_TEAM_ID" 2>&1 || true
+                  return 1 ;;
+              esac
+            done
+            echo "timeout après $((timeout / 60)) min"
+            return 2
+          }
+
+          backoffs=(300 900 2700)
+          for i in 0 1 2; do
+            echo "notarisation: tentative $((i + 1))/3"
+            notarize_once "$RUNNER_TEMP/ssr.zip" "${backoffs[$i]}" && exit 0
+            rc=$?
+            [ $rc -eq 2 ] || exit $rc   # ne réessaie que sur timeout
+          done
+          exit 1
+
+      # --- Empaquetage ---
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: tar czf ssr-${{ matrix.label }}.tar.gz -C target/${{ matrix.target }}/release ssr
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        run: Compress-Archive -Path target/${{ matrix.target }}/release/ssr.exe -DestinationPath ssr-${{ matrix.label }}.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ssr-${{ matrix.label }}
+          path: ssr-${{ matrix.label }}.*
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v5
+        with:
+          path: artifacts
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/**/*
+
+      - uses: actions/checkout@v5
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install Linux build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libpipewire-0.3-dev libspa-0.2-dev clang \
+            libxkbcommon-dev libwayland-dev libgl1-mesa-dev libdbus-1-dev \
+            libx11-dev libxext-dev libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
+            libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
+            libxcb-randr0-dev libxcb-shm0-dev
+
+      - name: Publish crates to crates.io
+        env:
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+        run: |
+          # Le cœur d'abord ; l'interface en dépend.
+          cargo publish -p support-step-recorder-core
+
+          # Attend que crates.io indexe le cœur avant de publier l'interface.
+          for i in $(seq 1 10); do
+            if cargo publish -p support-step-recorder-gui; then
+              exit 0
+            fi
+            echo "index pas encore prêt, nouvelle tentative dans 30 s… ($i/10)"
+            sleep 30
+          done
+          echo "échec de publication de l'interface" >&2
+          exit 1

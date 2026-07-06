@@ -112,7 +112,10 @@ impl Screen {
     ///
     /// Seule la partie réellement synchrone au clic est faite ici : le grab de
     /// l'écran (xcap) ou le snapshot de la dernière frame (portail).
-    pub fn capture_for_click(&self, pos: Option<(i32, i32)>) -> Option<(Pixels, Option<WindowInfo>)> {
+    pub fn capture_for_click(
+        &self,
+        pos: Option<(i32, i32)>,
+    ) -> Option<(Pixels, Option<WindowInfo>)> {
         match self {
             Screen::Xcap => {
                 let (image, info) = capture_for_click_xcap(pos)?;

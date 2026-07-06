@@ -1,17 +1,19 @@
 [package]
-name = "ssr-gui"
+name = "support-step-recorder-gui"
 description = "Interface egui/glow de Support Step Recorder : enregistrer, revoir et exporter une session."
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+keywords = ["screen-recorder", "psr", "wayland", "egui", "screenshot"]
+categories = ["multimedia", "gui"]
 
 [[bin]]
 name = "ssr"
 path = "src/main.rs"
 
 [dependencies]
-ssr-core = { path = "../ssr-core" }
+support-step-recorder-core = { path = "../ssr-core", version = "0.1.0" }
 eframe = { version = "0.35", features = ["glow"] }
 egui = "0.35"
 image = { workspace = true }

@@ -175,7 +175,10 @@ impl App {
         };
         let default = default_zip_name(&session);
         let dest = rfd::FileDialog::new()
-            .set_title(self.t("Enregistrer le rapport (ZIP + HTML)", "Save report (ZIP + HTML)"))
+            .set_title(self.t(
+                "Enregistrer le rapport (ZIP + HTML)",
+                "Save report (ZIP + HTML)",
+            ))
             .set_file_name(default)
             .add_filter(self.t("Archive ZIP", "ZIP archive"), &["zip"])
             .save_file();
@@ -196,7 +199,9 @@ impl App {
         }
         let progress = self.progress.clone();
         let lang = self.lang;
-        let unreachable = self.t("Session inaccessible.", "Session unavailable.").to_string();
+        let unreachable = self
+            .t("Session inaccessible.", "Session unavailable.")
+            .to_string();
         let (tx, rx) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
             let result = match session.lock() {
@@ -208,7 +213,9 @@ impl App {
             progress.clear();
             let _ = tx.send(result);
         });
-        self.status = self.t("Génération du rapport…", "Generating report…").to_string();
+        self.status = self
+            .t("Génération du rapport…", "Generating report…")
+            .to_string();
         self.export = Some(rx);
     }
 
@@ -235,7 +242,9 @@ impl App {
             }
             Err(TryRecvError::Empty) => {} // toujours en cours
             Err(TryRecvError::Disconnected) => {
-                self.status = self.t("Export interrompu.", "Export interrupted.").to_string();
+                self.status = self
+                    .t("Export interrompu.", "Export interrupted.")
+                    .to_string();
                 self.export = None;
             }
         }
@@ -380,7 +389,8 @@ impl eframe::App for App {
                     Some(snap) if !snap.rows.is_empty() => {
                         egui::ScrollArea::vertical().show(ui, |ui| {
                             for row in &snap.rows {
-                                let label = format!("{}. {}", row.index, row.description(self.lang));
+                                let label =
+                                    format!("{}. {}", row.index, row.description(self.lang));
                                 let selected = self.selected == Some(row.index);
                                 let resp = ui.selectable_label(selected, label);
                                 if resp.clicked() {
@@ -462,7 +472,9 @@ impl eframe::App for App {
                     ));
                     ui.add_space(8.0);
                     ui.horizontal(|ui| {
-                        retry = ui.button(self.t("Choisir un dossier", "Choose a folder")).clicked();
+                        retry = ui
+                            .button(self.t("Choisir un dossier", "Choose a folder"))
+                            .clicked();
                         discard = ui
                             .button(self.t("Abandonner la session", "Discard session"))
                             .clicked();
@@ -475,7 +487,10 @@ impl eframe::App for App {
                 self.confirm_discard = false;
                 self.pending_save = None;
                 self.status = self
-                    .t("Session abandonnée (non enregistrée).", "Session discarded (not saved).")
+                    .t(
+                        "Session abandonnée (non enregistrée).",
+                        "Session discarded (not saved).",
+                    )
                     .to_string();
             }
         }
@@ -489,7 +504,10 @@ fn step_metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang) {
     // Date absolue (format humain) + temps écoulé depuis le début.
     let when = human_date(row.timestamp_ms);
     let elapsed = format!("T+{:.1}s", row.elapsed_ms as f64 / 1000.0);
-    ui.label(format!("{} {when}   ({elapsed})", lang.pick("Date :", "Date:")));
+    ui.label(format!(
+        "{} {when}   ({elapsed})",
+        lang.pick("Date :", "Date:")
+    ));
 
     // Détail de l'action.
     match &row.action {
@@ -514,17 +532,31 @@ fn step_metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang) {
     }
 
     // Fenêtre active (souvent inconnue sous Wayland).
-    let title = row.window.as_ref().map(|w| w.title.as_str()).filter(|t| !t.is_empty());
-    let app = row.window.as_ref().map(|w| w.app_name.as_str()).filter(|a| !a.is_empty());
+    let title = row
+        .window
+        .as_ref()
+        .map(|w| w.title.as_str())
+        .filter(|t| !t.is_empty());
+    let app = row
+        .window
+        .as_ref()
+        .map(|w| w.app_name.as_str())
+        .filter(|a| !a.is_empty());
     match (title, app) {
         (Some(t), Some(a)) => {
-            ui.label(format!("{} « {t} » ({a})", lang.pick("Fenêtre :", "Window:")));
+            ui.label(format!(
+                "{} « {t} » ({a})",
+                lang.pick("Fenêtre :", "Window:")
+            ));
         }
         (Some(t), None) => {
             ui.label(format!("{} « {t} »", lang.pick("Fenêtre :", "Window:")));
         }
         (None, Some(a)) => {
-            ui.label(format!("{} {a}", lang.pick("Application :", "Application:")));
+            ui.label(format!(
+                "{} {a}",
+                lang.pick("Application :", "Application:")
+            ));
         }
         (None, None) => {
             ui.weak(lang.pick(
@@ -578,9 +610,18 @@ fn theme_toggle(ui: &mut egui::Ui, lang: Lang) {
     use egui::ThemePreference::{Dark, Light, System};
     let current = ui.ctx().options(|opt| opt.theme_preference);
     let tip = match current {
-        Light => lang.pick("Thème : clair (cliquer pour obscur)", "Theme: light (click for dark)"),
-        Dark => lang.pick("Thème : obscur (cliquer pour système)", "Theme: dark (click for system)"),
-        System => lang.pick("Thème : système (cliquer pour clair)", "Theme: system (click for light)"),
+        Light => lang.pick(
+            "Thème : clair (cliquer pour obscur)",
+            "Theme: light (click for dark)",
+        ),
+        Dark => lang.pick(
+            "Thème : obscur (cliquer pour système)",
+            "Theme: dark (click for system)",
+        ),
+        System => lang.pick(
+            "Thème : système (cliquer pour clair)",
+            "Theme: system (click for light)",
+        ),
     };
 
     let (rect, resp) = ui.allocate_exact_size(egui::vec2(24.0, 24.0), egui::Sense::click());
