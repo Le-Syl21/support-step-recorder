@@ -30,7 +30,7 @@ jobs:
             libxkbcommon-dev libwayland-dev libgl1-mesa-dev libdbus-1-dev \
             libx11-dev libxext-dev libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
             libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-            libxcb-randr0-dev libxcb-shm0-dev
+            libxcb-randr0-dev libxcb-shm0-dev libgbm-dev
 
       - name: Check formatting
         run: cargo fmt --all --check
@@ -84,7 +84,7 @@ jobs:
             libxkbcommon-dev libwayland-dev libgl1-mesa-dev libdbus-1-dev \
             libx11-dev libxext-dev libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
             libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-            libxcb-randr0-dev libxcb-shm0-dev
+            libxcb-randr0-dev libxcb-shm0-dev libgbm-dev
 
       - name: Build (release)
         run: cargo build --release --workspace --target ${{ matrix.target }}
@@ -235,7 +235,7 @@ jobs:
             libxkbcommon-dev libwayland-dev libgl1-mesa-dev libdbus-1-dev \
             libx11-dev libxext-dev libxi-dev libxtst-dev libxrandr-dev libxcursor-dev \
             libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-            libxcb-randr0-dev libxcb-shm0-dev
+            libxcb-randr0-dev libxcb-shm0-dev libgbm-dev
 
       - name: Publish crates to crates.io
         env:
