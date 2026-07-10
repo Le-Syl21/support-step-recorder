@@ -13,7 +13,7 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -64,7 +64,7 @@ jobs:
     name: ${{ matrix.label }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -196,13 +196,53 @@ jobs:
         run: Compress-Archive -Path target/${{ matrix.target }}/release/ssr.exe -DestinationPath ssr-${{ matrix.label }}.zip
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v7
         with:
           name: ssr-${{ matrix.label }}
           path: ssr-${{ matrix.label }}.*
 
-  release:
+  # Authenticode-sign the Windows binary with ssign — the Linux runner signs it
+  # via Certum (no Windows, no vendor stack). Gated by the `signing` environment
+  # (owner approval); the release below needs it.
+  sign-windows:
     needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    environment: signing
+    steps:
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install ssign
+        run: cargo install ssign
+
+      - name: Download the Windows artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: ssr-windows-x86_64
+          path: dl
+
+      - name: Sign ssr.exe with ssign (via Certum)
+        env:
+          CERTUM_EMAIL: ${{ secrets.CERTUM_EMAIL }}
+          CERTUM_OTP: ${{ secrets.CERTUM_OTP }}
+        run: |
+          unzip -o dl/ssr-windows-x86_64.zip -d dl
+          ssign --verbose \
+            -n "support-step-recorder" -u "https://github.com/${{ github.repository }}" \
+            dl/ssr.exe
+          sudo apt-get update -qq && sudo apt-get install -y osslsigncode
+          osslsigncode verify dl/ssr.exe 2>&1 | grep -q "Calculated message digest"
+          (cd dl && rm -f ssr-windows-x86_64.zip && zip -j ssr-windows-x86_64.zip ssr.exe)
+
+      - name: Re-upload the signed Windows artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ssr-windows-x86_64
+          path: dl/ssr-windows-x86_64.zip
+          overwrite: true
+
+  release:
+    needs: [build, sign-windows]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:
@@ -210,17 +250,17 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           generate_release_notes: true
           files: artifacts/**/*
 
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
