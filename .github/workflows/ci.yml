@@ -90,8 +90,11 @@ jobs:
         run: cargo build --release --workspace --target ${{ matrix.target }}
 
       - name: Run tests
-        # On ne peut pas exécuter des binaires x86_64 sur le runner macOS arm64.
-        if: matrix.target != 'x86_64-apple-darwin'
+        # Pas de tests sur macOS : le pont Swift de screencapturekit est lié en
+        # double dans le binaire de test (ld: duplicate symbol CoreMediaBridge…).
+        # La logique testée est indépendante de la plateforme et tourne déjà
+        # sous Linux (x86_64 + aarch64) et Windows ; macOS ne fait que `build`.
+        if: runner.os != 'macOS'
         run: cargo test --workspace --target ${{ matrix.target }}
 
       # --- Signature & notarisation Apple ---
