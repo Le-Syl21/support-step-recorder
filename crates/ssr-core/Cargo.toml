@@ -34,3 +34,12 @@ evdev = "0.13"
 ashpd = { version = "0.13", default-features = false, features = ["async-io", "screencast"] }
 pipewire = "0.9"
 pollster = "0.4"
+
+# Capture par-fenêtre native Windows via Windows.Graphics.Capture (WGC).
+[target.'cfg(target_os = "windows")'.dependencies]
+windows-capture = "2"
+windows = { version = "0.58", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
+
+# Capture par-fenêtre native macOS via ScreenCaptureKit.
+[target.'cfg(target_os = "macos")'.dependencies]
+screencapturekit = "8"

@@ -15,6 +15,11 @@ pub fn focused_window() -> Option<Window> {
         .find(|w| w.is_focused().unwrap_or(false))
 }
 
+/// Vrai si `window` appartient à notre propre process (l'IHM du recorder).
+pub fn is_own_window(window: &Window) -> bool {
+    window.pid().ok() == Some(std::process::id())
+}
+
 /// Extrait les métadonnées d'une fenêtre (au mieux ; champs vides sinon).
 pub fn window_info(window: &Window) -> WindowInfo {
     WindowInfo {
@@ -118,7 +123,7 @@ impl Screen {
     ) -> Option<(Pixels, Option<WindowInfo>)> {
         match self {
             Screen::Xcap => {
-                let (image, info) = capture_for_click_xcap(pos)?;
+                let (image, info) = capture_for_click_native(pos)?;
                 Some((Pixels::Rgba(image), info))
             }
             #[cfg(target_os = "linux")]
@@ -140,6 +145,23 @@ impl Default for Screen {
     }
 }
 
+/// Capture par-fenêtre, dispatchée par plateforme, avec repli `xcap`.
+///
+/// Windows et macOS utilisent leur backend natif (Windows.Graphics.Capture /
+/// ScreenCaptureKit) ; s'il échoue — ou sur X11 — on retombe sur `xcap`. Les
+/// backends natifs excluent déjà notre propre fenêtre, comme le fait `xcap`.
+fn capture_for_click_native(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<WindowInfo>)> {
+    #[cfg(target_os = "windows")]
+    if let Some(result) = crate::capture_windows::capture_for_click(pos) {
+        return Some(result);
+    }
+    #[cfg(target_os = "macos")]
+    if let Some(result) = crate::capture_macos::capture_for_click(pos) {
+        return Some(result);
+    }
+    capture_for_click_xcap(pos)
+}
+
 /// Capture `xcap` : fenêtre active si on peut l'identifier (X11/Windows/macOS),
 /// sinon plein écran en repli. Le grab de l'écran est la seule partie qui doit
 /// être synchrone au clic ; l'encodage est délégué au writer.
@@ -149,6 +171,11 @@ impl Default for Screen {
 pub fn capture_for_click_xcap(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<WindowInfo>)> {
     // Cas nominal : capture de la fenêtre active.
     if let Some(window) = focused_window() {
+        // Ne jamais capturer notre propre fenêtre : un clic sur l'IHM du
+        // recorder (Arrêter, panneau de revue…) ne doit pas devenir une étape.
+        if is_own_window(&window) {
+            return None;
+        }
         let info = window_info(&window);
         let mut image = capture_window(&window)?;
         if let Some((px, py)) = pos {

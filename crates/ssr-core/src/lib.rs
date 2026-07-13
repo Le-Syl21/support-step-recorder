@@ -6,6 +6,10 @@
 //! - [`export`] produit un rapport HTML rejouable, un `steps.json` et une archive ZIP.
 
 pub mod capture;
+#[cfg(target_os = "macos")]
+pub mod capture_macos;
+#[cfg(target_os = "windows")]
+pub mod capture_windows;
 pub mod export;
 pub mod i18n;
 pub mod input;
