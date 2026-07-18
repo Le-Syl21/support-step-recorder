@@ -13,7 +13,7 @@ name = "ssr"
 path = "src/main.rs"
 
 [dependencies]
-support-step-recorder-core = { path = "../ssr-core", version = "0.1.0" }
+support-step-recorder-core = { path = "../ssr-core", version = "0.1.2" }
 eframe = { version = "0.35", features = ["glow"] }
 egui = "0.35"
 image = { workspace = true }
