@@ -271,7 +271,29 @@ jobs:
             -n "support-step-recorder" -u "https://github.com/${{ github.repository }}" \
             dl/ssr.exe
           sudo apt-get update -qq && sudo apt-get install -y osslsigncode
-          osslsigncode verify dl/ssr.exe 2>&1 | grep -q "Calculated message digest"
+          # Vérifie les faits, pas la présence d'une phrase. « Calculated message
+          # digest » apparaît AUSSI quand le digest ne correspond pas, et ne dit
+          # rien de l'horodatage : ce contrôle laissait donc passer une signature
+          # que Windows aurait rejetée, et des binaires non horodatés — donc
+          # invalides dès l'expiration du certificat.
+          verify_signature() {
+            local out
+            out=$(osslsigncode verify "$1" 2>&1) || true
+            echo "$out"
+            if echo "$out" | grep -q "MISMATCH"; then
+              echo "::error::$1 : digest Authenticode invalide (Windows le verrait comme falsifié)"
+              return 1
+            fi
+            if echo "$out" | grep -q "Timestamp is not available"; then
+              echo "::error::$1 : signature non horodatée (invalide dès l'expiration du certificat)"
+              return 1
+            fi
+            if ! echo "$out" | grep -q "Signature verification: ok"; then
+              echo "::error::$1 : vérification de signature échouée"
+              return 1
+            fi
+          }
+          verify_signature dl/ssr.exe
           (cd dl && rm -f ssr-windows-x86_64.zip && zip -j ssr-windows-x86_64.zip ssr.exe)
 
       - name: Re-upload the signed Windows artifact
