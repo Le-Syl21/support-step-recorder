@@ -313,6 +313,9 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
     runs-on: ubuntu-24.04
     environment: crates-io
+    permissions:
+      contents: read
+      id-token: write        # nécessaire pour demander le jeton OIDC à GitHub
 
     steps:
       - uses: actions/checkout@v7
@@ -332,9 +335,17 @@ jobs:
             libxcb1-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
             libxcb-randr0-dev libxcb-shm0-dev libgbm-dev
 
+      # Trusted Publishing : aucun secret longue durée. GitHub atteste
+      # cryptographiquement l'identité du workflow (repo + fichier + environnement),
+      # crates.io vérifie cette attestation contre la config enregistrée et émet un
+      # jeton éphémère, révoqué automatiquement en fin de job.
+      - name: Get a temporary crates.io token (OIDC)
+        id: auth
+        uses: rust-lang/crates-io-auth-action@v1
+
       - name: Publish crates to crates.io
         env:
-          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ steps.auth.outputs.token }}
         run: |
           # Publie en tolérant « already exists » (retag idempotent) et échoue sur
           # toute autre erreur. Le cœur d'abord ; l'interface en dépend.
