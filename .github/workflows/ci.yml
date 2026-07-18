@@ -21,6 +21,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4  # stable
         with:
+          toolchain: stable
           components: rustfmt, clippy
 
       # Garde-fou posé au tout début du pipeline : le tag doit correspondre à la
@@ -93,6 +94,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4  # stable
         with:
+          toolchain: stable
           targets: ${{ matrix.target }}
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
@@ -365,6 +367,8 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4  # stable
+        with:
+          toolchain: stable
 
       - uses: Swatinem/rust-cache@e18b497796c12c097a38f9edb9d0641fb99eee32  # v2
 
