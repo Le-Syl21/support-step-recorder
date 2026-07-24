@@ -1,6 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 //! Interface egui/glow de Support Step Recorder.
+//!
+//! # Community & support
+//!
+//! Questions, bugs, beta testing — join the Discord: <https://discord.gg/T37DYHmt2j>
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -326,6 +330,12 @@ impl eframe::App for App {
                 } else {
                     ui.label(&self.status);
                 }
+
+                // À droite : lien vers la communauté / le support (Discord).
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.hyperlink_to("💬 Discord", "https://discord.gg/T37DYHmt2j")
+                        .on_hover_text(self.t("Communauté & support", "Community & support"));
+                });
             });
             ui.add_space(2.0);
         });

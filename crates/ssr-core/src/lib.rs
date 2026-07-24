@@ -4,6 +4,10 @@
 //! - [`recorder::Recorder`] branche les événements clavier/souris sur une session.
 //! - [`session::Session`] accumule les [`model::Step`] et leurs captures.
 //! - [`export`] produit un rapport HTML rejouable, un `steps.json` et une archive ZIP.
+//!
+//! # Community & support
+//!
+//! Questions, bugs, beta testing — join the Discord: <https://discord.gg/T37DYHmt2j>
 
 pub mod capture;
 #[cfg(target_os = "macos")]
