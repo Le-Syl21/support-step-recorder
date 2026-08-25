@@ -38,7 +38,6 @@ pollster = "1"
 # Capture par-fenêtre native Windows via Windows.Graphics.Capture (WGC).
 [target.'cfg(target_os = "windows")'.dependencies]
 windows-capture = "2"
-windows = { version = "0.58", features = ["Win32_Foundation", "Win32_UI_WindowsAndMessaging"] }
 
 # Capture par-fenêtre native macOS via ScreenCaptureKit.
 # La feature `macos_14_0` active `SCScreenshotManager` (l'API one-shot).
