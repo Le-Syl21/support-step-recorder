@@ -3,7 +3,7 @@ resolver = "2"
 members = ["crates/ssr-core", "crates/ssr-gui"]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/Le-Syl21/support-step-recorder"
@@ -15,7 +15,7 @@ webp = "0.3"
 image = "0.25"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-zip = "2"
+zip = "8"
 chrono = "0.4"
 
 # Binaire de release compact (à livrer pour le support).

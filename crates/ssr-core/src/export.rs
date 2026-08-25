@@ -243,3 +243,44 @@ fn escape(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::session::Session;
+
+    /// The export had no test at all, which is how `zip` crossed six majors
+    /// with nothing but a successful compile behind it. A zip writer that
+    /// builds is not a zip anyone can open: this reads the archive back.
+    #[test]
+    fn export_zip_produces_an_archive_that_reads_back() {
+        let dir = std::env::temp_dir().join("ssr-export-test");
+        let _ = fs::remove_dir_all(&dir);
+        let session = Session::new(&dir, Lang::En).expect("session");
+        // `export_zip` writes the report itself; steps.json has to be there.
+        fs::write(dir.join("steps.json"), b"[]").expect("steps.json");
+
+        let zip_path = dir.join("out.zip");
+        export_zip(&session, &zip_path, &Progress::new(), Lang::En).expect("export");
+
+        let f = File::open(&zip_path).expect("open archive");
+        let mut archive = zip::ZipArchive::new(f).expect("the archive must be readable");
+        let names: Vec<String> = (0..archive.len())
+            .map(|i| archive.by_index(i).unwrap().name().to_string())
+            .collect();
+        assert!(names.contains(&"report.html".to_string()), "{names:?}");
+        assert!(names.contains(&"steps.json".to_string()), "{names:?}");
+
+        // And the bytes must survive the round trip, not merely be listed.
+        let body = {
+            let mut entry = archive.by_name("steps.json").expect("entry");
+            let mut body = String::new();
+            std::io::Read::read_to_string(&mut entry, &mut body).expect("read entry");
+            body
+        };
+        assert_eq!(body, "[]");
+
+        drop(archive);
+        let _ = fs::remove_dir_all(&dir);
+    }
+}
