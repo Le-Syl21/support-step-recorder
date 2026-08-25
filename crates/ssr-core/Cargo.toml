@@ -32,7 +32,7 @@ evdev = "0.13"
 # ashpd sur l'exécuteur async-io : un réacteur global (thread dédié) pilote l'IO
 # zbus, donc on peut bloquer depuis notre thread PipeWire sans runtime tokio.
 ashpd = { version = "0.13", default-features = false, features = ["async-io", "screencast"] }
-pipewire = "0.9"
+pipewire = "0.10"
 pollster = "1"
 
 # Capture par-fenêtre native Windows via Windows.Graphics.Capture (WGC).
