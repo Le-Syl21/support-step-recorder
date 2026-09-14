@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Alternative gratuite à l&#x27;Enregistreur d&#x27;actions utilisateur (psr.exe) pour Windows, macOS et Linux</title>
+<meta name="description" content="Support Step Recorder (ssr) prend une capture à chaque clic, note le texte saisi et enregistre un ZIP avec un rapport HTML. Remplaçant libre et gratuit de psr.exe pour Windows, macOS et Linux, Wayland compris.">
+<link rel="canonical" href="https://le-syl21.github.io/support-step-recorder/fr/">
+<link rel="alternate" hreflang="en" href="https://le-syl21.github.io/support-step-recorder/">
+<link rel="alternate" hreflang="fr" href="https://le-syl21.github.io/support-step-recorder/fr/">
+<link rel="alternate" hreflang="x-default" href="https://le-syl21.github.io/support-step-recorder/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Support Step Recorder">
+<meta property="og:title" content="Alternative gratuite à l&#x27;Enregistreur d&#x27;actions utilisateur (psr.exe) pour Windows, macOS et Linux">
+<meta property="og:description" content="Support Step Recorder (ssr) prend une capture à chaque clic, note le texte saisi et enregistre un ZIP avec un rapport HTML. Remplaçant libre et gratuit de psr.exe pour Windows, macOS et Linux, Wayland compris.">
+<meta property="og:url" content="https://le-syl21.github.io/support-step-recorder/fr/">
+<meta property="og:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:locale:alternate" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Alternative gratuite à l&#x27;Enregistreur d&#x27;actions utilisateur (psr.exe) pour Windows, macOS et Linux">
+<meta name="twitter:description" content="Support Step Recorder (ssr) prend une capture à chaque clic, note le texte saisi et enregistre un ZIP avec un rapport HTML. Remplaçant libre et gratuit de psr.exe pour Windows, macOS et Linux, Wayland compris.">
+<meta name="twitter:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%23dc4646'/></svg>">
+<link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "SoftwareApplication", "name": "Support Step Recorder", "alternateName": "ssr", "description": "Support Step Recorder (ssr) prend une capture à chaque clic, note le texte saisi et enregistre un ZIP avec un rapport HTML. Remplaçant libre et gratuit de psr.exe pour Windows, macOS et Linux, Wayland compris.", "operatingSystem": "Windows, macOS, Linux", "applicationCategory": "UtilitiesApplication", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "isAccessibleForFree": true, "license": "https://opensource.org/licenses/MIT", "downloadUrl": "https://le-syl21.github.io/support-step-recorder/fr/download.html", "codeRepository": "https://github.com/Le-Syl21/support-step-recorder", "url": "https://le-syl21.github.io/support-step-recorder/fr/", "inLanguage": ["en", "fr"]}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="../fr/">Support Step <span>Recorder</span></a>
+<nav class="main"><a href="../fr/" aria-current="page">Accueil</a><a href="../fr/download.html">Télécharger</a><a href="../fr/guide.html">Mode d'emploi</a><a href="../fr/linux-wayland.html">Linux et Wayland</a><a href="../fr/faq.html">FAQ</a></nav>
+<a class="lang" href="../" hreflang="en"><img src="../img/gb.svg" alt="GB" width="21" height="14">English version</a>
+</div></header>
+<main><div class="wrap">
+<h1>Support Step Recorder</h1>
+<p class="lead">Un remplaçant libre et gratuit de l'Enregistreur d'actions utilisateur de Windows
+(<code>psr.exe</code>, « Problem Steps Recorder »), pour Windows, macOS et Linux. À chaque clic, <code>ssr</code>
+capture la fenêtre, note le bouton de la souris et le texte saisi depuis le clic précédent. À l'arrêt, il
+enregistre un <code>.zip</code> avec les captures et un rapport HTML, à envoyer au support ou à garder comme tutoriel
+pas à pas.</p>
+<div class="actions"><a class="btn" href="../fr/download.html">Télécharger</a>
+<a class="btn ghost" href="../fr/guide.html">Mode d'emploi</a>
+<a class="btn ghost" href="https://github.com/Le-Syl21/support-step-recorder">Code source</a></div>
+
+<h2>Pourquoi un nouvel enregistreur d'actions</h2>
+<p>Microsoft a déprécié l'Enregistreur d'actions utilisateur (<code>psr.exe</code>) et prévoit de le retirer d'une
+future version de Windows. Il n'a de toute façon jamais existé que sous Windows. <code>ssr</code> reprend le même
+principe, une capture à chaque clic et une liste d'étapes lisible dans un seul fichier, et fonctionne sous Windows,
+macOS et Linux, aussi bien sous X11 que sous Wayland.</p>
+
+<h2>Ce qu'il fait</h2>
+<ul>
+<li><strong>Capture au clic</strong> : la capture montre l'état <em>au moment</em> du clic, comme le vrai PSR ; un
+formulaire rempli est donc capturé avant son envoi.</li>
+<li><strong>Texte saisi</strong> : ce que vous tapez entre deux clics devient une étape à part, placée avant le clic.</li>
+<li><strong>Infos sur la fenêtre</strong> : titre et application de la fenêtre, et sous Windows, macOS et X11 un
+cercle rouge à l'endroit du clic.</li>
+<li><strong>Compatible Wayland</strong> : capture d'écran via <code>xdg-desktop-portal</code> et PipeWire (GNOME, KDE,
+wlroots…), avec une demande d'autorisation posée une fois puis mémorisée. <a href="../fr/linux-wayland.html">Mise en place sous Linux et Wayland</a>.</li>
+<li><strong>Fichiers légers</strong> : captures en WebP, et captures de fenêtre recadrées sur leur contenu, sans bandes noires.</li>
+<li><strong>Ne bloque jamais</strong> : l'encodage des images et l'écriture sur le disque se font dans un thread à part, le clic reste instantané.</li>
+<li><strong>Rapport HTML rejouable</strong> : mode relecture pas à pas, zoom au clic sur une capture, navigation au clavier.</li>
+<li>Interface en <strong>français et en anglais</strong>, choisie d'après la langue du système et modifiable avec le bouton <code>FR</code>/<code>EN</code>.</li>
+</ul>
+
+<h2>Le rapport</h2>
+<figure class="shot"><img src="../img/report-fr.webp" width="1200" height="900" loading="lazy" alt="Rapport HTML écrit par Support Step Recorder : étapes numérotées avec leur description et leur capture"><figcaption>Le rapport HTML tel que ssr l'écrit. La session est une courte démonstration construite avec le code de ssr (trois étapes sur ce site), pas un vrai cas de support.</figcaption></figure>
+<p>Le <code>.zip</code> contient <code>report.html</code>, une image <code>step-XXXX.webp</code> par clic et un
+fichier <code>steps.json</code> destiné aux outils. Détails dans <a href="../fr/guide.html#zip">le contenu du ZIP</a>.</p>
+
+<h2>Systèmes</h2>
+<div class="cards">
+<div class="card"><h3>Windows</h3><p>64 bits. Un seul <code>ssr.exe</code>, signé, rien à installer.</p><a class="more" href="../fr/download.html#windows">Téléchargement Windows →</a></div>
+<div class="card"><h3>macOS</h3><p>Apple silicon et Intel. Signé et notarisé par Apple.</p><a class="more" href="../fr/download.html#macos">Téléchargement macOS →</a></div>
+<div class="card"><h3>Linux</h3><p>x86_64 et aarch64. X11 et Wayland (GNOME, KDE, wlroots…).</p><a class="more" href="../fr/download.html#linux">Téléchargement Linux →</a></div>
+</div>
+
+<h2>Enregistrer en trois étapes</h2>
+<ol>
+<li>Cliquez sur <strong>Démarrer</strong>.</li>
+<li>Faites ce que vous voulez montrer : clics, saisies.</li>
+<li>Cliquez sur <strong>Arrêter</strong>, choisissez où enregistrer : le <code>.zip</code> et son rapport HTML y sont écrits.</li>
+</ol>
+<p>Questions, signalements de bugs, tests de versions bêta : <a href="https://discord.gg/T37DYHmt2j">Discord</a> ou <a href="https://github.com/Le-Syl21/support-step-recorder/issues">tickets GitHub</a>.</p>
+</div></main>
+<footer class="site"><div class="wrap">
+<a href="https://github.com/Le-Syl21/support-step-recorder">Code source et tickets sur GitHub</a>
+<a href="https://discord.gg/T37DYHmt2j">Discord</a>
+<span>Licence MIT. Sans lien avec Microsoft.</span>
+</div></footer>
+</body>
+</html>

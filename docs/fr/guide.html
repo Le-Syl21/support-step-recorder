@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comment enregistrer les étapes pour reproduire un problème – mode d&#x27;emploi de Support Step Recorder</title>
+<meta name="description" content="Enregistrez vos clics et votre saisie avec Support Step Recorder, sauvegardez-les en ZIP et lisez le rapport HTML : mode relecture, zoom, steps.json. Le principe de psr.exe, sous Windows, macOS et Linux.">
+<link rel="canonical" href="https://le-syl21.github.io/support-step-recorder/fr/guide.html">
+<link rel="alternate" hreflang="en" href="https://le-syl21.github.io/support-step-recorder/guide.html">
+<link rel="alternate" hreflang="fr" href="https://le-syl21.github.io/support-step-recorder/fr/guide.html">
+<link rel="alternate" hreflang="x-default" href="https://le-syl21.github.io/support-step-recorder/guide.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Support Step Recorder">
+<meta property="og:title" content="Comment enregistrer les étapes pour reproduire un problème – mode d&#x27;emploi de Support Step Recorder">
+<meta property="og:description" content="Enregistrez vos clics et votre saisie avec Support Step Recorder, sauvegardez-les en ZIP et lisez le rapport HTML : mode relecture, zoom, steps.json. Le principe de psr.exe, sous Windows, macOS et Linux.">
+<meta property="og:url" content="https://le-syl21.github.io/support-step-recorder/fr/guide.html">
+<meta property="og:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:locale:alternate" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Comment enregistrer les étapes pour reproduire un problème – mode d&#x27;emploi de Support Step Recorder">
+<meta name="twitter:description" content="Enregistrez vos clics et votre saisie avec Support Step Recorder, sauvegardez-les en ZIP et lisez le rapport HTML : mode relecture, zoom, steps.json. Le principe de psr.exe, sous Windows, macOS et Linux.">
+<meta name="twitter:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%23dc4646'/></svg>">
+<link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebPage", "name": "Comment enregistrer les étapes pour reproduire un problème – mode d'emploi de Support Step Recorder", "description": "Enregistrez vos clics et votre saisie avec Support Step Recorder, sauvegardez-les en ZIP et lisez le rapport HTML : mode relecture, zoom, steps.json. Le principe de psr.exe, sous Windows, macOS et Linux.", "url": "https://le-syl21.github.io/support-step-recorder/fr/guide.html", "inLanguage": "fr", "about": {"@type": "SoftwareApplication", "name": "Support Step Recorder", "alternateName": "ssr", "description": "Alternative libre et gratuite à l'Enregistreur d'actions utilisateur de Windows (psr.exe).", "operatingSystem": "Windows, macOS, Linux", "applicationCategory": "UtilitiesApplication", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "isAccessibleForFree": true, "license": "https://opensource.org/licenses/MIT", "downloadUrl": "https://le-syl21.github.io/support-step-recorder/fr/download.html", "codeRepository": "https://github.com/Le-Syl21/support-step-recorder", "url": "https://le-syl21.github.io/support-step-recorder/fr/", "inLanguage": ["en", "fr"]}}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="../fr/">Support Step <span>Recorder</span></a>
+<nav class="main"><a href="../fr/">Accueil</a><a href="../fr/download.html">Télécharger</a><a href="../fr/guide.html" aria-current="page">Mode d'emploi</a><a href="../fr/linux-wayland.html">Linux et Wayland</a><a href="../fr/faq.html">FAQ</a></nav>
+<a class="lang" href="../guide.html" hreflang="en"><img src="../img/gb.svg" alt="GB" width="21" height="14">English version</a>
+</div></header>
+<main><div class="wrap">
+<h1>Enregistrer vos étapes</h1>
+<p class="lead">Démarrer, faire ce que vous voulez montrer, arrêter et enregistrer. Cette page détaille un
+enregistrement et ce que contient le <code>.zip</code> obtenu.</p>
+
+<h2>1. Démarrer</h2>
+<p>Ouvrez <code>ssr</code> et cliquez sur <strong>Démarrer</strong>. La barre d'état, en bas, affiche
+<em>Enregistrement</em> suivi du mode de capture des entrées utilisé.</p>
+<ul>
+<li>Les captures vont d'abord dans un dossier temporaire (<code>support-step-recorder</code>, dans le dossier
+temporaire du système). Elles sont effacées au démarrage de l'enregistrement suivant : enregistrez la session si vous
+voulez la garder.</li>
+<li>Sur une session Wayland, le bureau demande à ce moment quelle fenêtre ou quel écran partager : voir
+<a href="../fr/linux-wayland.html#portal">la demande d'autorisation</a>.</li>
+</ul>
+
+<h2>2. Faire les actions à documenter</h2>
+<ul>
+<li><strong>Chaque clic</strong>, au relâchement du bouton, déclenche une capture de la fenêtre active. Sous Windows,
+macOS et X11, un cercle rouge marque l'endroit cliqué, et les clics dans la fenêtre de <code>ssr</code> ne sont pas
+enregistrés.</li>
+<li><strong>Le texte saisi</strong> est mis de côté jusqu'au clic suivant, puis enregistré comme une étape à part,
+juste avant ce clic. Lettres, chiffres, ponctuation, Espace, Entrée, Tab et Retour arrière sont pris en compte ; les
+flèches, les touches de fonction et les raccourcis ne deviennent pas du texte.</li>
+<li>Les étapes s'ajoutent au fur et à mesure dans la liste de gauche. Sélectionnez-en une, ou utilisez les flèches
+haut et bas, pour voir sa capture, sa date, le temps écoulé depuis le début, l'action et la fenêtre.</li>
+</ul>
+<div class="note">Tout ce qui est tapé entre deux clics part dans le rapport, mots de passe compris. Arrêtez
+l'enregistrement, ou ne tapez rien de confidentiel, avant de saisir une information privée.</div>
+
+<h2>3. Arrêter et enregistrer</h2>
+<ol>
+<li>Cliquez sur <strong>Arrêter</strong>. Une fenêtre <strong>Enregistrer sous</strong> s'ouvre, avec un nom du type
+<code>session-20260914-153000.zip</code>.</li>
+<li>Choisissez un dossier : le rapport est généré et la barre d'état indique où il a été exporté.</li>
+<li>Si vous annulez, <code>ssr</code> prévient que la session ne sera pas sauvegardée et propose <strong>Choisir un
+dossier</strong> ou <strong>Abandonner la session</strong>.</li>
+</ol>
+<p>Le bouton <strong>FR</strong>/<strong>EN</strong> change la langue de l'interface ; le rapport est écrit dans la
+langue choisie au moment de l'enregistrement. Le bouton rond d'à côté fait passer le thème de clair à sombre, puis à
+celui du système.</p>
+
+<h2 id="zip">Le contenu du ZIP</h2>
+<div class="table"><table><thead><tr><th>Fichier</th><th>Contenu</th></tr></thead><tbody>
+<tr><td><code>report.html</code></td><td>Le rapport, à ouvrir dans n'importe quel navigateur.</td></tr>
+<tr><td><code>step-0001.webp</code>, <code>step-0002.webp</code>…</td><td>Une capture par clic, au format WebP.</td></tr>
+<tr><td><code>steps.json</code></td><td>Les mêmes étapes en JSON, pour les scripts et les outils de tickets.</td></tr>
+</tbody></table></div>
+<p>La page HTML charge les images WebP posées à côté d'elle : décompressez toute l'archive avant d'ouvrir
+<code>report.html</code>.</p>
+
+<h2>Lire le rapport</h2>
+<figure class="shot"><img src="../img/report-fr.webp" width="1200" height="900" loading="lazy" alt="Rapport HTML écrit par Support Step Recorder : étapes numérotées avec leur description et leur capture"><figcaption>Le rapport HTML tel que ssr l'écrit. La session est une courte démonstration construite avec le code de ssr (trois étapes sur ce site), pas un vrai cas de support.</figcaption></figure>
+<ul>
+<li>L'en-tête indique le nombre d'étapes et la date de l'enregistrement.</li>
+<li>Chaque étape affiche son numéro, une description du type <em>Clic gauche sur « titre de la fenêtre » (application)</em>, le temps
+écoulé depuis le début, l'application, son identifiant de processus (PID) et la taille de la fenêtre. Les étapes de
+saisie sont repérées par une barre jaune.</li>
+<li>Cliquez sur une capture pour l'afficher en plein écran ; un nouveau clic ou la touche Échap la referme.</li>
+<li>Le <strong>mode relecture</strong> montre une étape à la fois. Passez de l'une à l'autre avec les boutons
+<strong>Précédent</strong> et <strong>Suivant</strong> ou les flèches gauche et droite.</li>
+</ul>
+
+<h2>Le format de steps.json</h2>
+<p>Un tableau d'étapes. Chacune a un <code>index</code>, un <code>timestamp_ms</code> (millisecondes depuis l'epoch
+Unix), un <code>elapsed_ms</code> depuis le début, une <code>action</code> (<code>"type": "click"</code> avec
+<code>button</code> et, quand elles sont connues, <code>x</code>, <code>y</code>, <code>rel_x</code>,
+<code>rel_y</code> ; ou <code>"type": "text"</code> avec <code>content</code>), la fenêtre (<code>window</code>)
+quand elle est connue, le nom du fichier de capture (<code>screenshot</code>) pour les clics, et la
+<code>description</code>. Une étape de saisie de la session de démonstration (enregistrée en anglais) :</p>
+<pre><code>[
+  {
+    &quot;index&quot;: 1,
+    &quot;timestamp_ms&quot;: 1789397964643,
+    &quot;elapsed_ms&quot;: 4011,
+    &quot;action&quot;: {
+      &quot;type&quot;: &quot;text&quot;,
+      &quot;content&quot;: &quot;le-syl21.github.io/support-step-recorder\n&quot;
+    },
+    &quot;window&quot;: {
+      &quot;title&quot;: &quot;Support Step Recorder - Chromium&quot;,
+      &quot;app_name&quot;: &quot;chromium&quot;,
+      &quot;pid&quot;: 2710879,
+      &quot;x&quot;: 0,
+      &quot;y&quot;: 0,
+      &quot;width&quot;: 1280,
+      &quot;height&quot;: 800
+    },
+    &quot;description&quot;: &quot;Typed “le-syl21.github.io/support-step-recorder⏎” in « Support Step Recorder - Chromium » (chromium)&quot;
+  }
+]</code></pre>
+</div></main>
+<footer class="site"><div class="wrap">
+<a href="https://github.com/Le-Syl21/support-step-recorder">Code source et tickets sur GitHub</a>
+<a href="https://discord.gg/T37DYHmt2j">Discord</a>
+<span>Licence MIT. Sans lien avec Microsoft.</span>
+</div></footer>
+</body>
+</html>

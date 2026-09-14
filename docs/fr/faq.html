@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Remplacer l&#x27;Enregistreur d&#x27;actions utilisateur (psr.exe) : FAQ et comparatif – Support Step Recorder</title>
+<meta name="description" content="Support Step Recorder comparé à l&#x27;Enregistreur d&#x27;actions utilisateur de Windows (psr.exe), et réponses sur les systèmes, Wayland, la confidentialité, le texte saisi et le rapport HTML.">
+<link rel="canonical" href="https://le-syl21.github.io/support-step-recorder/fr/faq.html">
+<link rel="alternate" hreflang="en" href="https://le-syl21.github.io/support-step-recorder/faq.html">
+<link rel="alternate" hreflang="fr" href="https://le-syl21.github.io/support-step-recorder/fr/faq.html">
+<link rel="alternate" hreflang="x-default" href="https://le-syl21.github.io/support-step-recorder/faq.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Support Step Recorder">
+<meta property="og:title" content="Remplacer l&#x27;Enregistreur d&#x27;actions utilisateur (psr.exe) : FAQ et comparatif – Support Step Recorder">
+<meta property="og:description" content="Support Step Recorder comparé à l&#x27;Enregistreur d&#x27;actions utilisateur de Windows (psr.exe), et réponses sur les systèmes, Wayland, la confidentialité, le texte saisi et le rapport HTML.">
+<meta property="og:url" content="https://le-syl21.github.io/support-step-recorder/fr/faq.html">
+<meta property="og:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:locale:alternate" content="en_GB">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Remplacer l&#x27;Enregistreur d&#x27;actions utilisateur (psr.exe) : FAQ et comparatif – Support Step Recorder">
+<meta name="twitter:description" content="Support Step Recorder comparé à l&#x27;Enregistreur d&#x27;actions utilisateur de Windows (psr.exe), et réponses sur les systèmes, Wayland, la confidentialité, le texte saisi et le rapport HTML.">
+<meta name="twitter:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%23dc4646'/></svg>">
+<link rel="stylesheet" href="../style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "name": "Remplacer l'Enregistreur d'actions utilisateur (psr.exe) : FAQ et comparatif – Support Step Recorder", "inLanguage": "fr", "url": "https://le-syl21.github.io/support-step-recorder/fr/faq.html", "about": {"@type": "SoftwareApplication", "name": "Support Step Recorder", "alternateName": "ssr", "description": "Alternative libre et gratuite à l'Enregistreur d'actions utilisateur de Windows (psr.exe).", "operatingSystem": "Windows, macOS, Linux", "applicationCategory": "UtilitiesApplication", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "isAccessibleForFree": true, "license": "https://opensource.org/licenses/MIT", "downloadUrl": "https://le-syl21.github.io/support-step-recorder/fr/download.html", "codeRepository": "https://github.com/Le-Syl21/support-step-recorder", "url": "https://le-syl21.github.io/support-step-recorder/fr/", "inLanguage": ["en", "fr"]}, "mainEntity": [{"@type": "Question", "name": "Support Step Recorder remplace-t-il psr.exe ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Il suit le même principe : une capture à chaque clic, une description lisible de chaque étape et une seule archive à envoyer. Il s'en distingue sur les points ci-dessous : il fonctionne sous Windows, macOS et Linux, il enregistre le texte saisi entre les clics comme des étapes, et il écrit un rapport HTML avec des captures WebP et un fichier <code>steps.json<\/code>.<\/p>"}}, {"@type": "Question", "name": "Est-il gratuit ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Oui. C'est un logiciel libre sous licence MIT, et le <a href=\"https://github.com/Le-Syl21/support-step-recorder\">code source<\/a> est sur GitHub.<\/p>"}}, {"@type": "Question", "name": "Sous quels systèmes fonctionne-t-il ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Windows 64 bits, macOS sur Apple silicon et Intel, Linux sur x86_64 et aarch64, sous X11 ou Wayland (GNOME, KDE, wlroots…). Voir <a href=\"../fr/download.html\">Télécharger<\/a>.<\/p>"}}, {"@type": "Question", "name": "Fonctionne-t-il sous Wayland ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Oui, avec une règle <code>udev<\/code> pour lire les clics et le clavier, et la fenêtre de partage d'écran du bureau pour les captures. Voir <a href=\"../fr/linux-wayland.html\">Linux et Wayland<\/a>.<\/p>"}}, {"@type": "Question", "name": "De quoi a besoin la personne qui reçoit le rapport ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>D'un navigateur web. Elle décompresse le <code>.zip<\/code> et ouvre <code>report.html<\/code> ; les captures sont les fichiers WebP posés à côté.<\/p>"}}, {"@type": "Question", "name": "ssr envoie-t-il quelque chose sur Internet ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Non. Il n'a aucune fonction d'envoi : le <code>.zip<\/code> est écrit dans le dossier que vous choisissez, et c'est vous qui décidez à qui le transmettre.<\/p>"}}, {"@type": "Question", "name": "Les mots de passe sont-ils enregistrés ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Le texte tapé entre deux clics est enregistré tel quel, sans aucun filtre. Arrêtez l'enregistrement avant de saisir une information privée.<\/p>"}}, {"@type": "Question", "name": "Pourquoi une partie du texte saisi est-elle fausse dans le rapport ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Le texte est reconstitué à partir des touches pressées, d'après une disposition de clavier américaine (QWERTY US). Avec une autre disposition, AZERTY par exemple, certains caractères peuvent différer.<\/p>"}}, {"@type": "Question", "name": "Pourquoi ni cercle rouge ni titre de fenêtre sous Wayland ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Wayland ne communique pas aux applications la position du clic ni la fenêtre active. La capture provient alors de la fenêtre ou de l'écran choisi dans la fenêtre de partage.<\/p>"}}, {"@type": "Question", "name": "Peut-on ajouter des commentaires ou modifier les étapes ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Non. <code>ssr<\/code> enregistre les étapes telles qu'elles se déroulent et les exporte telles quelles.<\/p>"}}, {"@type": "Question", "name": "Enregistre-t-il une vidéo ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Non. Il prend une capture par clic, enregistrée en image WebP.<\/p>"}}, {"@type": "Question", "name": "Où sont gardées les captures pendant l'enregistrement ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Dans un dossier <code>support-step-recorder<\/code> du dossier temporaire du système, jusqu'à ce que vous enregistriez. Ce dossier est vidé au démarrage de l'enregistrement suivant.<\/p>"}}, {"@type": "Question", "name": "Quelles langues sont disponibles ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Le français et l'anglais, pour l'interface comme pour le rapport. La langue suit celle du système et le bouton <code>FR<\/code>/<code>EN<\/code> permet d'en changer.<\/p>"}}, {"@type": "Question", "name": "Où trouver de l'aide ?", "acceptedAnswer": {"@type": "Answer", "text": "<p>Sur <a href=\"https://discord.gg/T37DYHmt2j\">Discord<\/a> ou dans les <a href=\"https://github.com/Le-Syl21/support-step-recorder/issues\">tickets GitHub<\/a>.<\/p>"}}]}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="../fr/">Support Step <span>Recorder</span></a>
+<nav class="main"><a href="../fr/">Accueil</a><a href="../fr/download.html">Télécharger</a><a href="../fr/guide.html">Mode d'emploi</a><a href="../fr/linux-wayland.html">Linux et Wayland</a><a href="../fr/faq.html" aria-current="page">FAQ</a></nav>
+<a class="lang" href="../faq.html" hreflang="en"><img src="../img/gb.svg" alt="GB" width="21" height="14">English version</a>
+</div></header>
+<main><div class="wrap">
+<h1>FAQ et comparaison avec psr.exe</h1>
+<p class="lead">L'Enregistreur d'actions utilisateur (<code>psr.exe</code>) et Support Step Recorder côte à côte,
+puis les questions qui reviennent le plus.</p>
+
+<div class="table"><table><thead><tr><th></th><th>Enregistreur d'actions (psr.exe)</th><th>Support Step Recorder (ssr)</th></tr></thead><tbody>
+<tr><td><strong>Systèmes</strong></td><td>Windows uniquement</td><td>Windows, macOS, Linux (X11 et Wayland)</td></tr>
+<tr><td><strong>Statut</strong></td><td>Déprécié par Microsoft, appelé à disparaître de Windows</td><td>Logiciel libre, licence MIT</td></tr>
+<tr><td><strong>Capture</strong></td><td>Capture à chaque clic</td><td>Capture à chaque clic, et texte saisi enregistré comme étape</td></tr>
+<tr><td><strong>Résultat</strong></td><td>ZIP avec un rapport MHT</td><td>ZIP avec un rapport HTML, des captures WebP et <code>steps.json</code></td></tr>
+</tbody></table></div>
+
+<div class="faq">
+<h3>Support Step Recorder remplace-t-il psr.exe ?</h3>
+<p>Il suit le même principe : une capture à chaque clic, une description lisible de chaque étape et une seule archive à envoyer. Il s'en distingue sur les points ci-dessous : il fonctionne sous Windows, macOS et Linux, il enregistre le texte saisi entre les clics comme des étapes, et il écrit un rapport HTML avec des captures WebP et un fichier <code>steps.json</code>.</p>
+<h3>Est-il gratuit ?</h3>
+<p>Oui. C'est un logiciel libre sous licence MIT, et le <a href="https://github.com/Le-Syl21/support-step-recorder">code source</a> est sur GitHub.</p>
+<h3>Sous quels systèmes fonctionne-t-il ?</h3>
+<p>Windows 64 bits, macOS sur Apple silicon et Intel, Linux sur x86_64 et aarch64, sous X11 ou Wayland (GNOME, KDE, wlroots…). Voir <a href="../fr/download.html">Télécharger</a>.</p>
+<h3>Fonctionne-t-il sous Wayland ?</h3>
+<p>Oui, avec une règle <code>udev</code> pour lire les clics et le clavier, et la fenêtre de partage d'écran du bureau pour les captures. Voir <a href="../fr/linux-wayland.html">Linux et Wayland</a>.</p>
+<h3>De quoi a besoin la personne qui reçoit le rapport ?</h3>
+<p>D'un navigateur web. Elle décompresse le <code>.zip</code> et ouvre <code>report.html</code> ; les captures sont les fichiers WebP posés à côté.</p>
+<h3>ssr envoie-t-il quelque chose sur Internet ?</h3>
+<p>Non. Il n'a aucune fonction d'envoi : le <code>.zip</code> est écrit dans le dossier que vous choisissez, et c'est vous qui décidez à qui le transmettre.</p>
+<h3>Les mots de passe sont-ils enregistrés ?</h3>
+<p>Le texte tapé entre deux clics est enregistré tel quel, sans aucun filtre. Arrêtez l'enregistrement avant de saisir une information privée.</p>
+<h3>Pourquoi une partie du texte saisi est-elle fausse dans le rapport ?</h3>
+<p>Le texte est reconstitué à partir des touches pressées, d'après une disposition de clavier américaine (QWERTY US). Avec une autre disposition, AZERTY par exemple, certains caractères peuvent différer.</p>
+<h3>Pourquoi ni cercle rouge ni titre de fenêtre sous Wayland ?</h3>
+<p>Wayland ne communique pas aux applications la position du clic ni la fenêtre active. La capture provient alors de la fenêtre ou de l'écran choisi dans la fenêtre de partage.</p>
+<h3>Peut-on ajouter des commentaires ou modifier les étapes ?</h3>
+<p>Non. <code>ssr</code> enregistre les étapes telles qu'elles se déroulent et les exporte telles quelles.</p>
+<h3>Enregistre-t-il une vidéo ?</h3>
+<p>Non. Il prend une capture par clic, enregistrée en image WebP.</p>
+<h3>Où sont gardées les captures pendant l&#x27;enregistrement ?</h3>
+<p>Dans un dossier <code>support-step-recorder</code> du dossier temporaire du système, jusqu'à ce que vous enregistriez. Ce dossier est vidé au démarrage de l'enregistrement suivant.</p>
+<h3>Quelles langues sont disponibles ?</h3>
+<p>Le français et l'anglais, pour l'interface comme pour le rapport. La langue suit celle du système et le bouton <code>FR</code>/<code>EN</code> permet d'en changer.</p>
+<h3>Où trouver de l&#x27;aide ?</h3>
+<p>Sur <a href="https://discord.gg/T37DYHmt2j">Discord</a> ou dans les <a href="https://github.com/Le-Syl21/support-step-recorder/issues">tickets GitHub</a>.</p>
+</div>
+</div></main>
+<footer class="site"><div class="wrap">
+<a href="https://github.com/Le-Syl21/support-step-recorder">Code source et tickets sur GitHub</a>
+<a href="https://discord.gg/T37DYHmt2j">Discord</a>
+<span>Licence MIT. Sans lien avec Microsoft.</span>
+</div></footer>
+</body>
+</html>

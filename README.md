@@ -15,6 +15,9 @@ Questions, bug reports, beta testing, or just want to chat? Join the Discord:
 
 ## 🇬🇧 English
 
+**Website**: [le-syl21.github.io/support-step-recorder](https://le-syl21.github.io/support-step-recorder/)
+(download, how-to, Linux/Wayland setup, FAQ).
+
 On every click, `ssr` captures the relevant window, records the **mouse button**,
 aggregates **typed text** between clicks, and — when available — the **active
 window** info. When you stop, it asks **where to save** and writes a `.zip`
@@ -103,6 +106,9 @@ MIT.
 ---
 
 ## 🇫🇷 Français
+
+**Site web** : [le-syl21.github.io/support-step-recorder/fr](https://le-syl21.github.io/support-step-recorder/fr/)
+(téléchargement, mode d'emploi, mise en place Linux/Wayland, FAQ).
 
 À chaque clic, `ssr` capture la fenêtre concernée, relève le **bouton de souris**,
 agrège le **texte saisi** entre deux clics et — quand c'est disponible — les

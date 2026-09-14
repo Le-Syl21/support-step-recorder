@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Steps recorder for Linux and Wayland (GNOME, KDE) – Support Step Recorder setup</title>
+<meta name="description" content="Record steps on Linux under X11 or Wayland with Support Step Recorder: the udev rule for /dev/input (60-ssr-input.rules, install-linux.sh), the xdg-desktop-portal consent dialog and PipeWire capture.">
+<link rel="canonical" href="https://le-syl21.github.io/support-step-recorder/linux-wayland.html">
+<link rel="alternate" hreflang="en" href="https://le-syl21.github.io/support-step-recorder/linux-wayland.html">
+<link rel="alternate" hreflang="fr" href="https://le-syl21.github.io/support-step-recorder/fr/linux-wayland.html">
+<link rel="alternate" hreflang="x-default" href="https://le-syl21.github.io/support-step-recorder/linux-wayland.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Support Step Recorder">
+<meta property="og:title" content="Steps recorder for Linux and Wayland (GNOME, KDE) – Support Step Recorder setup">
+<meta property="og:description" content="Record steps on Linux under X11 or Wayland with Support Step Recorder: the udev rule for /dev/input (60-ssr-input.rules, install-linux.sh), the xdg-desktop-portal consent dialog and PipeWire capture.">
+<meta property="og:url" content="https://le-syl21.github.io/support-step-recorder/linux-wayland.html">
+<meta property="og:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="en_GB">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Steps recorder for Linux and Wayland (GNOME, KDE) – Support Step Recorder setup">
+<meta name="twitter:description" content="Record steps on Linux under X11 or Wayland with Support Step Recorder: the udev rule for /dev/input (60-ssr-input.rules, install-linux.sh), the xdg-desktop-portal consent dialog and PipeWire capture.">
+<meta name="twitter:image" content="https://le-syl21.github.io/support-step-recorder/img/og.jpg">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><circle cx='8' cy='8' r='7' fill='%23dc4646'/></svg>">
+<link rel="stylesheet" href="style.css">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "WebPage", "name": "Steps recorder for Linux and Wayland (GNOME, KDE) – Support Step Recorder setup", "description": "Record steps on Linux under X11 or Wayland with Support Step Recorder: the udev rule for /dev/input (60-ssr-input.rules, install-linux.sh), the xdg-desktop-portal consent dialog and PipeWire capture.", "url": "https://le-syl21.github.io/support-step-recorder/linux-wayland.html", "inLanguage": "en", "about": {"@type": "SoftwareApplication", "name": "Support Step Recorder", "alternateName": "ssr", "description": "Free, open-source alternative to Windows' Problem Steps Recorder (psr.exe).", "operatingSystem": "Windows, macOS, Linux", "applicationCategory": "UtilitiesApplication", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "EUR"}, "isAccessibleForFree": true, "license": "https://opensource.org/licenses/MIT", "downloadUrl": "https://le-syl21.github.io/support-step-recorder/download.html", "codeRepository": "https://github.com/Le-Syl21/support-step-recorder", "url": "https://le-syl21.github.io/support-step-recorder/", "inLanguage": ["en", "fr"]}}</script>
+</head>
+<body>
+<header class="site"><div class="wrap">
+<a class="brand" href="./">Support Step <span>Recorder</span></a>
+<nav class="main"><a href="./">Home</a><a href="download.html">Download</a><a href="guide.html">How to use</a><a href="linux-wayland.html" aria-current="page">Linux & Wayland</a><a href="faq.html">FAQ</a></nav>
+<a class="lang" href="fr/linux-wayland.html" hreflang="fr"><img src="img/fr.svg" alt="FR" width="21" height="14">Version française</a>
+</div></header>
+<main><div class="wrap">
+<h1>Linux and Wayland</h1>
+<p class="lead">Under X11, <code>ssr</code> works like on Windows and macOS, with nothing to set up. Under Wayland it
+takes a dedicated path, because Wayland does not let an ordinary application watch the clicks and keys of other
+windows or capture them freely.</p>
+
+<div class="table"><table><thead><tr><th></th><th>X11</th><th>Wayland</th></tr></thead><tbody>
+<tr><td><strong>Clicks and keys</strong></td><td><code>device_query</code></td><td><code>evdev</code>, reading <code>/dev/input</code> (needs the <code>udev</code> rule)</td></tr>
+<tr><td><strong>Screenshots</strong></td><td><code>xcap</code>, active window</td><td><code>xdg-desktop-portal</code> + PipeWire, window or screen chosen by you</td></tr>
+</tbody></table></div>
+<p>The Wayland path is picked when <code>XDG_SESSION_TYPE</code> is <code>wayland</code> or <code>WAYLAND_DISPLAY</code>
+is set. The portal is used on every Wayland desktop: <code>xcap</code>'s own Wayland support only works on wlroots
+compositors, not on GNOME or KDE.</p>
+
+<h2 id="udev">1. Allow reading input devices</h2>
+<p>The <code>evdev</code> backend reads <code>/dev/input</code>. To give access <strong>without</strong> adding your
+user to the <code>input</code> group, install the <code>udev</code> rule shipped in the repository:</p>
+<pre><code>git clone https://github.com/Le-Syl21/support-step-recorder.git
+cd support-step-recorder
+sudo ./packaging/install-linux.sh</code></pre>
+<p>Without git, fetch the two files into the same folder and run the script from there:</p>
+<pre><code>curl -fLO https://raw.githubusercontent.com/Le-Syl21/support-step-recorder/main/packaging/install-linux.sh
+curl -fLO https://raw.githubusercontent.com/Le-Syl21/support-step-recorder/main/packaging/60-ssr-input.rules
+sudo bash install-linux.sh</code></pre>
+<p>The script:</p>
+<ul>
+<li>installs <code>/etc/udev/rules.d/60-ssr-input.rules</code>, which contains a single rule:
+<code>KERNEL==&quot;event*&quot;, SUBSYSTEM==&quot;input&quot;, TAG+=&quot;uaccess&quot;</code>. It gives the user of the active session read access to input devices;</li>
+<li>removes an older <code>99-ssr-input.rules</code> if present;</li>
+<li>reloads the <code>udev</code> rules and applies them to input devices right away.</li>
+</ul>
+<p>If capture does not work straight away, log out and back in.</p>
+<p>The <code>60-</code> prefix matters: the <code>uaccess</code> tag has to be set <em>before</em> systemd's
+<code>73-seat-late.rules</code>, which applies the access rights only to devices already tagged. A rule numbered 99
+comes too late and has no effect.</p>
+<div class="note"><strong>Security</strong>: this rule lets applications run by the active user read keyboard and
+mouse input. That is the trade-off for a PSR-style recorder under Wayland. Screen capture still goes through the
+portal and its consent dialog.</div>
+<p>Without the rule (or membership of the <code>input</code> group), <strong>Start</strong> fails: the status bar
+reports that no readable <code>/dev/input</code> device was found.</p>
+<p>To uninstall:</p>
+<pre><code>sudo rm /etc/udev/rules.d/60-ssr-input.rules
+sudo udevadm control --reload-rules
+sudo udevadm trigger --subsystem-match=input</code></pre>
+
+<h2 id="portal">2. Accept the screen sharing request</h2>
+<p>When you click <strong>Start</strong>, your desktop (GNOME, KDE, wlroots…) shows its screen sharing dialog. Pick
+<strong>one window or one screen</strong>: every screenshot of the session comes from it, mouse pointer included.</p>
+<p><code>ssr</code> keeps the token returned by the portal in <code>~/.local/state/ssr/screencast.token</code> (or
+<code>$XDG_STATE_HOME/ssr/screencast.token</code>), so later recordings do not ask again. If the portal is not
+available, <code>ssr</code> falls back to <code>xcap</code>.</p>
+
+<h2>What changes under Wayland</h2>
+<ul>
+<li>The screenshot is the latest image of the shared window or screen. Window captures are trimmed of the black
+borders some compositors add around them.</li>
+<li>The click position is not known: no red ring on the screenshots, and no coordinates in <code>steps.json</code>.</li>
+<li>The title and application of the window are not exposed; the step list shows
+<em>Window: unknown (not exposed under Wayland)</em>.</li>
+<li>Left, right and middle mouse buttons are recorded.</li>
+</ul>
+
+<h2>Building on Linux</h2>
+<p>The Wayland capture path needs the PipeWire headers and clang (for bindgen). On Debian or Ubuntu:</p>
+<pre><code>sudo apt install libpipewire-0.3-dev libspa-0.2-dev clang</code></pre>
+<p>See <a href="download.html#cargo">install with Cargo</a> for the full list used by the release workflow.</p>
+</div></main>
+<footer class="site"><div class="wrap">
+<a href="https://github.com/Le-Syl21/support-step-recorder">Source code and issues on GitHub</a>
+<a href="https://discord.gg/T37DYHmt2j">Discord</a>
+<span>MIT licence. Not affiliated with Microsoft.</span>
+</div></footer>
+</body>
+</html>
