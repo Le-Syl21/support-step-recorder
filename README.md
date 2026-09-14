@@ -40,7 +40,8 @@ locale, switchable with the `FR`/`EN` button).
   thread — clicking stays instant.
 - **Replayable HTML report**: step-by-step replay mode, click any screenshot to
   **zoom** it, keyboard navigation.
-- **Multi-OS by design**: Windows, macOS, Linux (X11 & Wayland).
+- **Multi-OS by design**: Windows, macOS, Linux (X11 & Wayland). The macOS window capture
+  builds in CI but has not been tried on a real Mac yet: reports welcome.
 
 ### Capture backends
 
@@ -71,7 +72,7 @@ HTML references the WebP files (they travel together in the zip).
 ### Build & run
 
 ```bash
-cargo run -p ssr-gui      # or: cargo run --bin ssr
+cargo run -p support-step-recorder-gui      # or: cargo run --bin ssr
 cargo test --workspace    # run the tests
 ```
 
@@ -132,7 +133,8 @@ basculable via le bouton `FR`/`EN`).
   thread d'écriture dédié — le clic reste instantané.
 - **Rapport HTML rejouable** : mode relecture pas à pas, **zoom** au clic sur une
   capture, navigation clavier.
-- **Multi-OS par conception** : Windows, macOS, Linux (X11 et Wayland).
+- **Multi-OS par conception** : Windows, macOS, Linux (X11 et Wayland). La capture de
+  fenêtre macOS compile en CI mais n'a pas encore été essayée sur un vrai Mac : vos retours sont bienvenus.
 
 ### Backends de capture
 
@@ -166,7 +168,7 @@ HTML référence les WebP (ils voyagent ensemble dans le zip).
 ### Compilation & lancement
 
 ```bash
-cargo run -p ssr-gui      # ou : cargo run --bin ssr
+cargo run -p support-step-recorder-gui      # ou : cargo run --bin ssr
 cargo test --workspace    # lancer les tests
 ```
 
