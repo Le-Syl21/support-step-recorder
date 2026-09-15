@@ -14,8 +14,6 @@ DOCS = Path(__file__).resolve().parent
 SITE = "https://le-syl21.github.io/support-step-recorder/"
 # Google Search Console ownership check (the token belongs to the owner's Google account).
 GOOGLE_VERIFICATION = "TqbXre6qrm9jaoj6tFwRRiI2vuQilAZLm6kUJA-etmo"
-# Bing Webmaster Tools ownership check (the token belongs to the owner's Microsoft account).
-BING_VERIFICATION = "74E158B181D9DA00960594ABC50DBA94"
 REPO = "https://github.com/Le-Syl21/support-step-recorder"
 RELEASES = REPO + "/releases"
 # Release asset names carry no version number (Package steps of .github/workflows/ci.yml),
@@ -824,7 +822,6 @@ def render(page, lang):
         for n in PAGES)
     ld = json.dumps(json_ld(page, lang, title, description), ensure_ascii=False).replace("</", "<\\/")
     verification = ('<meta name="google-site-verification" content="' + GOOGLE_VERIFICATION + '">\n'
-                    '<meta name="msvalidate.01" content="' + BING_VERIFICATION + '">\n'
                     if page == "index" else "")
     return f"""<!doctype html>
 <html lang="{lang}">
