@@ -42,4 +42,4 @@ windows-capture = "2"
 # Capture par-fenêtre native macOS via ScreenCaptureKit.
 # La feature `macos_14_0` active `SCScreenshotManager` (l'API one-shot).
 [target.'cfg(target_os = "macos")'.dependencies]
-screencapturekit = { version = "8", features = ["macos_14_0"] }
+screencapturekit = { version = "11", features = ["macos_14_0"] }
