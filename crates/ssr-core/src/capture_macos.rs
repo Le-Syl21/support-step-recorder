@@ -47,7 +47,10 @@ pub fn capture_for_click(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<W
         height: frame.size.height as u32,
     };
 
-    let filter = SCContentFilter::create().with_window(&window).build();
+    let filter = SCContentFilter::create()
+        .with_window(&window)
+        .build()
+        .ok()?;
     let config = SCStreamConfiguration::new()
         .with_width(frame.size.width as u32)
         .with_height(frame.size.height as u32);
