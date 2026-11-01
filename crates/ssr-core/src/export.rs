@@ -266,7 +266,7 @@ mod tests {
         let f = File::open(&zip_path).expect("open archive");
         let mut archive = zip::ZipArchive::new(f).expect("the archive must be readable");
         let names: Vec<String> = (0..archive.len())
-            .map(|i| archive.by_index(i).unwrap().name().to_string())
+            .map(|i| archive.by_index(i).unwrap().name().unwrap().to_string())
             .collect();
         assert!(names.contains(&"report.html".to_string()), "{names:?}");
         assert!(names.contains(&"steps.json".to_string()), "{names:?}");
