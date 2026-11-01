@@ -20,6 +20,55 @@ pub fn is_own_window(window: &Window) -> bool {
     window.pid().ok() == Some(std::process::id())
 }
 
+/// Whether a click at `pos` lands on one of our own windows (the recorder's
+/// GUI), which is never a step. Decided by the window under the pointer, not
+/// the focused one: Windows only hands the focus over after the click, so a
+/// click into the recorder from another application still found that
+/// application focused and was recorded.
+pub fn click_on_own_window(pos: Option<(i32, i32)>) -> bool {
+    pos.is_some_and(|(x, y)| own_window_at(x, y))
+}
+
+#[cfg(target_os = "windows")]
+fn own_window_at(x: i32, y: i32) -> bool {
+    use windows_sys::Win32::Foundation::POINT;
+    use windows_sys::Win32::UI::WindowsAndMessaging::{
+        GetAncestor, GetWindowThreadProcessId, WindowFromPoint, GA_ROOT,
+    };
+    // SAFETY: plain Win32 queries on a window handle the system just gave us;
+    // a stale or null handle makes them fail, not misbehave.
+    unsafe {
+        let hwnd = WindowFromPoint(POINT { x, y });
+        if hwnd.is_null() {
+            return false;
+        }
+        let root = GetAncestor(hwnd, GA_ROOT);
+        let mut pid = 0u32;
+        GetWindowThreadProcessId(if root.is_null() { hwnd } else { root }, &mut pid);
+        pid == std::process::id()
+    }
+}
+
+/// X11 and macOS: xcap lists the windows from the top of the stack down, so
+/// the first one containing the point is the one under the pointer. Wayland
+/// gives no window positions: nothing matches, the click is kept.
+#[cfg(not(target_os = "windows"))]
+fn own_window_at(x: i32, y: i32) -> bool {
+    let Ok(windows) = Window::all() else {
+        return false;
+    };
+    windows
+        .iter()
+        .filter(|w| !w.is_minimized().unwrap_or(false))
+        .find(|w| {
+            let (Ok(wx), Ok(wy), Ok(ww), Ok(wh)) = (w.x(), w.y(), w.width(), w.height()) else {
+                return false;
+            };
+            x >= wx && y >= wy && x < wx + ww as i32 && y < wy + wh as i32
+        })
+        .is_some_and(is_own_window)
+}
+
 /// Extrait les métadonnées d'une fenêtre (au mieux ; champs vides sinon).
 pub fn window_info(window: &Window) -> WindowInfo {
     WindowInfo {

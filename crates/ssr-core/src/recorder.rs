@@ -138,6 +138,10 @@ fn on_click(
     if !session.lock().map(|s| s.recording).unwrap_or(false) {
         return;
     }
+    // A click on the recorder itself (Stop, the steps list...) is not a step.
+    if crate::capture::click_on_own_window(pos) {
+        return;
+    }
 
     // Seule partie synchrone au clic : le snapshot de l'écran (grab xcap ou
     // dernière frame du portail). On capture l'état au moment du clic (avant que

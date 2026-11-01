@@ -4618,6 +4618,7 @@ dependencies = [
  "serde_json",
  "webp",
  "windows-capture",
+ "windows-sys 0.61.2",
  "xcap",
  "zip",
 ]
