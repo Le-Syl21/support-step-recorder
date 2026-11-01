@@ -341,8 +341,12 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
                         lang.pick("Capture introuvable.", "Screenshot not found.")
                     };
                     placeholder(ui, Icon::Camera, msg, None);
-                    ui.ctx()
-                        .request_repaint_after(std::time::Duration::from_millis(300));
+                    // Only while recording: the file is about to appear. A
+                    // screenshot missing afterwards will not come back.
+                    if app.stage() == Stage::Recording {
+                        ui.ctx()
+                            .request_repaint_after(std::time::Duration::from_millis(300));
+                    }
                 }
             },
             None => {

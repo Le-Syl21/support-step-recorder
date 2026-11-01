@@ -277,11 +277,16 @@ pub fn eyebrow(ui: &mut Ui, text: &str) {
     );
 }
 
-/// A pulsing dot: the live recording indicator.
+/// A dot blinking once a second: the live recording indicator. It steps with
+/// the recording's one-second refresh instead of animating, which would keep
+/// redrawing the window for nothing.
 pub fn live_dot(ui: &mut Ui, size: f32, color: Color32) {
     let (rect, _) = ui.allocate_exact_size(Vec2::splat(size), Sense::hover());
-    let t = ui.input(|i| i.time) as f32;
-    let pulse = 0.5 + 0.5 * (t * 3.0).sin();
+    let pulse = if (ui.input(|i| i.time) as i64) % 2 == 0 {
+        1.0
+    } else {
+        0.0
+    };
     let painter = ui.painter();
     painter.circle_filled(
         rect.center(),

@@ -415,11 +415,16 @@ impl eframe::App for App {
         self.track_prefs(&ctx);
         self.textures.begin_frame();
 
-        // While work is going on (recording, an action, an export), data
-        // changes from other threads: refresh regularly.
+        // Data changes from other threads while work is going on. An action
+        // or an export shows a spinner: refresh often. A recording only needs
+        // its clock and the new steps: once a second, so the recorder stays
+        // light while the user works (each frame is a full redraw, and on a
+        // machine without GPU acceleration that is CPU time).
         let activity = self.progress.get();
-        if self.recorder.is_some() || activity.is_some() || self.export.is_some() {
+        if activity.is_some() || self.export.is_some() {
             ctx.request_repaint_after(Duration::from_millis(250));
+        } else if self.recorder.is_some() {
+            ctx.request_repaint_after(Duration::from_secs(1));
         }
 
         self.refresh_snapshot();
