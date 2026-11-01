@@ -24,6 +24,8 @@ version = "0.25.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "4e883d1d28c5fd5568c79ed2d2bd48d9f2fd3945c8974ed0f53690ceddb051be"
 dependencies = [
+ "enumn",
+ "serde",
  "uuid",
 ]
 
@@ -153,6 +155,7 @@ dependencies = [
  "cfg-if",
  "getrandom 0.3.4",
  "once_cell",
+ "serde",
  "version_check",
  "zerocopy",
 ]
@@ -626,6 +629,9 @@ name = "bitflags"
 version = "2.13.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3ded4057c258ba199e2d26386d3af3780957ecaee6c4ef4041c6b4b8b97c0b06"
+dependencies = [
+ "serde_core",
+]
 
 [[package]]
 name = "bitstream-io"
@@ -1256,6 +1262,7 @@ checksum = "31bcbef0d4263a63eb32c4834e5d711613035ce1333468e107d928923e21e6e2"
 dependencies = [
  "bytemuck",
  "emath",
+ "serde",
 ]
 
 [[package]]
@@ -1271,6 +1278,7 @@ dependencies = [
  "egui-wgpu",
  "egui-winit",
  "egui_glow",
+ "egui_inspection",
  "egui_system_font_provider",
  "glow",
  "glutin",
@@ -1286,7 +1294,9 @@ dependencies = [
  "pollster 1.0.1",
  "profiling",
  "raw-window-handle",
+ "ron",
  "send_wrapper",
+ "serde",
  "static_assertions",
  "wasm-bindgen",
  "web-sys",
@@ -1311,6 +1321,8 @@ dependencies = [
  "log",
  "nohash-hasher",
  "profiling",
+ "ron",
+ "serde",
  "smallvec",
  "unicode-segmentation",
  "web-sys",
@@ -1354,6 +1366,7 @@ dependencies = [
  "objc2-ui-kit 0.3.2",
  "profiling",
  "raw-window-handle",
+ "serde",
  "smithay-clipboard",
  "web-time",
  "webbrowser",
@@ -1373,6 +1386,20 @@ dependencies = [
  "log",
  "profiling",
  "winit",
+]
+
+[[package]]
+name = "egui_inspection"
+version = "0.37.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "79e654b1f4f8497673118228ce7e48d2c23924fa3e346ef13b50c858bd81acaa"
+dependencies = [
+ "egui",
+ "image",
+ "log",
+ "rmp-serde",
+ "serde",
+ "serde_bytes",
 ]
 
 [[package]]
@@ -1403,6 +1430,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e73ce90f54750be8672c02be0743fe47530e6f251e066f0ee2869b59eb297af5"
 dependencies = [
  "bytemuck",
+ "serde",
 ]
 
 [[package]]
@@ -1433,6 +1461,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "enumn"
+version = "0.1.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2f9ed6b3789237c8a0c1c505af1c7eb2c560df6186f01b098c3a1064ea532f38"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.119",
+]
+
+[[package]]
 name = "epaint"
 version = "0.37.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1450,6 +1489,7 @@ dependencies = [
  "parking_lot",
  "profiling",
  "self_cell",
+ "serde",
  "skrifa",
  "smallvec",
  "unicode-general-category",
@@ -1633,6 +1673,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "835ae9d781464a79026cde387f9cbc650c9a4909d7cf7e658b127e3c35d2f35d"
 dependencies = [
  "bytemuck",
+ "serde",
 ]
 
 [[package]]
@@ -4119,6 +4160,38 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "47b34b781b31e5d73e9fbc8689c70551fd1ade9a19e3e28cfec8580a79290cc4"
 
 [[package]]
+name = "rmp"
+version = "0.8.15"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ba8be72d372b2c9b35542551678538b562e7cf86c3315773cae48dfbfe7790c"
+dependencies = [
+ "num-traits",
+]
+
+[[package]]
+name = "rmp-serde"
+version = "1.3.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "72f81bee8c8ef9b577d1681a70ebbc962c232461e397b22c208c43c04b67a155"
+dependencies = [
+ "rmp",
+ "serde",
+]
+
+[[package]]
+name = "ron"
+version = "0.12.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "97b3fe97c18ff24299ea56f802c5693eb34266fb0bc8317f4e101debc8a3ceaf"
+dependencies = [
+ "bitflags 2.13.2",
+ "serde",
+ "serde_derive",
+ "typeid",
+ "unicode-ident",
+]
+
+[[package]]
 name = "roxmltree"
 version = "0.21.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4250,6 +4323,16 @@ checksum = "4148590afebada386688f18773da617792bf2ef03ffc1e4cbd2b1d45b023e0ba"
 dependencies = [
  "serde_core",
  "serde_derive",
+]
+
+[[package]]
+name = "serde_bytes"
+version = "0.11.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a5d440709e79d88e51ac01c4b72fc6cb7314017bb7da9eeff678aa94c10e3ea8"
+dependencies = [
+ "serde",
+ "serde_core",
 ]
 
 [[package]]
@@ -4416,6 +4499,9 @@ name = "smallvec"
 version = "1.16.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0d5d4b1981b8bbbb7aed204cae5726d683d5d6ac7e74ec54122ea28f315e7c8"
+dependencies = [
+ "serde",
+]
 
 [[package]]
 name = "smithay-client-toolkit"
@@ -4545,6 +4631,7 @@ dependencies = [
  "egui",
  "image",
  "rfd",
+ "serde",
  "support-step-recorder-core",
 ]
 
@@ -4869,6 +4956,12 @@ name = "typed-path"
 version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9ce898823d8cd0f028662d2f349694b1af0a5cc9be83f1d213a00d3147445e1e"
+
+[[package]]
+name = "typeid"
+version = "1.0.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc7d623258602320d5c55d1bc22793b57daff0ec7efc270ea7d55ce1d5f5471c"
 
 [[package]]
 name = "typenum"
