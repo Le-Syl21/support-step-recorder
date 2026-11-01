@@ -15,7 +15,7 @@ webp = "0.3"
 image = "0.25"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-zip = "8"
+zip = "9"
 chrono = "0.4"
 
 # Binaire de release compact (à livrer pour le support).
