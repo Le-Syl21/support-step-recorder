@@ -17,6 +17,11 @@ fi
 rm -f /etc/udev/rules.d/99-ssr-input.rules
 
 install -m 0644 "$RULE_SRC" "$RULE_DST"
+# SELinux (RHEL, Fedora…) : remet le contexte par défaut du dossier des
+# règles, au cas où le fichier source portait un autre label.
+if command -v restorecon >/dev/null 2>&1; then
+    restorecon "$RULE_DST" || true
+fi
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=input
 
