@@ -126,6 +126,7 @@ impl Session {
         let now = now_ms();
         let description = Step::build_description(&action, window.as_ref(), self.lang);
         self.steps.push(Step {
+            id: Some(uuid::Uuid::new_v4()),
             index: self.steps.len() + 1,
             timestamp_ms: now,
             elapsed_ms: now.saturating_sub(self.start_ms),
@@ -133,6 +134,10 @@ impl Session {
             window,
             screenshot,
             description,
+            title_override: None,
+            notes: String::new(),
+            source: None,
+            kind: crate::model::StepKind::Captured,
         });
     }
 }

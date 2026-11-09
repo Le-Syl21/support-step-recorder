@@ -13,3 +13,12 @@
 .DS_Store
 Thumbs.db
 *.swp
+
+# Paquets RHEL et sources vendorisées (packaging/rhel/build-rhel10.sh)
+/dist
+/vendor
+/.cargo/config.toml
+/ssr-vendored-source.tar.gz*
+
+# Données d'exemple (factices) livrées avec le dépôt
+!/docs/samples/*.zip

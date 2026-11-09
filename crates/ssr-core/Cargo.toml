@@ -22,6 +22,8 @@ serde.workspace = true
 serde_json.workspace = true
 zip.workspace = true
 chrono.workspace = true
+uuid.workspace = true
+sha2.workspace = true
 
 # Backend d'entrées pour Wayland (lecture de /dev/input).
 [target.'cfg(target_os = "linux")'.dependencies]

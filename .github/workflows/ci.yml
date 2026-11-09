@@ -139,6 +139,37 @@ jobs:
           name: ssr-${{ matrix.label }}
           path: ssr-${{ matrix.label }}.*
 
+  # RHEL 10 : binaire construit dans un conteneur EL10 (glibc et PipeWire de
+  # RHEL 10), livré en tarball avec packaging/install-linux.sh — même
+  # installation que les autres builds Linux.
+  rhel10:
+    needs: lint
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            label: rhel10-x86_64
+          - os: ubuntu-24.04-arm
+            label: rhel10-aarch64
+    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.label }}
+    container: quay.io/centos/centos:stream10
+    steps:
+      - name: Install git (checkout) and the build dependencies
+        run: dnf -y install git tar
+      - uses: actions/checkout@v7
+      - name: Build and package
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          packaging/rhel/build-rhel10.sh --install-deps
+          cargo test --workspace --locked
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ssr-${{ matrix.label }}
+          path: dist/ssr-*-rhel10-*.tar.gz*
+
   # Signature + notarisation Apple. Derrière `signing` au même titre que Windows :
   # une signature Developer ID engage l'identité (et donc la réputation) du
   # propriétaire, elle ne doit jamais partir sans approbation explicite.
@@ -327,7 +358,7 @@ jobs:
           overwrite: true
 
   release:
-    needs: [build, sign-windows, sign-apple]
+    needs: [build, rhel10, sign-windows, sign-apple]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     permissions:

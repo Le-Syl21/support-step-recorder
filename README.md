@@ -20,9 +20,10 @@ Questions, bug reports, beta testing, or just want to chat? Join the Discord:
 
 On every click, `ssr` captures the relevant window, records the **mouse button**,
 aggregates **typed text** between clicks, and — when available — the **active
-window** info. When you stop, it asks **where to save** and writes a `.zip`
-bundling the WebP screenshots, a `steps.json`, and a self-contained, replayable
-**HTML report**.
+window** info. When you stop, you land in the **guide editor**: rename and
+describe steps, reorder or delete them, combine several recordings, then save an
+editable **project** (`.ssrproj`) and export a `.zip` bundling the screenshots, a
+`steps.json`, and a self-contained, replayable **HTML report**.
 
 The interface is available in **English and French** (auto-detected from your
 locale, switchable with the `FR`/`EN` button).
@@ -39,7 +40,17 @@ locale, switchable with the `FR`/`EN` button).
 - **Never blocks**: WebP encoding and disk writes happen on a background writer
   thread — clicking stays instant.
 - **Replayable HTML report**: step-by-step replay mode, click any screenshot to
-  **zoom** it, keyboard navigation.
+  **zoom** it, keyboard navigation, printable.
+- **Guide editor**: custom step titles and multi-line instructions, drag and
+  drop (or Alt+↑/↓) to reorder, select several steps (Ctrl+click, Shift+click,
+  Ctrl+A) to move or delete them together, delete a step or only its screenshot, add
+  PNG/JPEG/WebP images or written steps, redact typed text, undo/redo.
+- **Reuse earlier recordings**: open a ZIP exported by v0.2.0 or later, or import
+  chosen steps from several recordings into one master guide. Source archives
+  are never modified; same-named screenshots never collide.
+- **Projects**: save the guide as `.ssrproj`, reopen it later, keep editing;
+  exporting a ZIP is a separate action. Unsaved work is asked about before it is
+  replaced, and recovered after a crash.
 - **Multi-OS by design**: Windows, macOS, Linux (X11 & Wayland). The macOS window capture
   builds in CI but has not been tried on a real Mac yet: reports welcome.
 
@@ -61,13 +72,24 @@ Input and screen capture are abstracted behind backends, chosen at compile time
 
 ### Workflow
 
-1. **Start** — screenshots are written to a **temporary** folder (volatile).
+1. **Start** — screenshots are written to a **private** working folder
+   (`~/.cache/ssr` on Linux, mode 0700).
 2. Do the actions you want to document (clicks, typing).
-3. **Stop** — a native **“Save as…”** dialog opens; pick a location and the
-   `ZIP + HTML` report is generated there. (Cancel → confirm discard or retry.)
+3. **Stop** — you land in the **editor**, nothing is written elsewhere yet.
+   Rename steps, add instructions, reorder, delete, import steps from other
+   recordings (**Import…**), add images.
+4. **Save project** (Ctrl+S) writes an editable `.ssrproj`; **Export guide…**
+   (Ctrl+E) writes the shareable `.zip`. Both write a temporary file first and
+   replace the target only once complete.
 
-The `.zip` contains `report.html`, `steps.json` and all `step-XXXX.webp`. The
-HTML references the WebP files (they travel together in the zip).
+| File | Contents | Use |
+|---|---|---|
+| `.ssrproj` | `project.json`, `steps.json`, `assets/<sha256>.<ext>` | Reopen and keep editing |
+| `.zip` (export) | `report.html`, `steps.json`, the referenced images | Send to support / colleagues |
+
+`ssr file.ssrproj` or `ssr recording.zip` opens a file at start. Imported
+archives are treated as untrusted: only `steps.json` and the images it names are
+read (never `report.html`), paths, sizes and image formats are checked.
 
 ### Build & run
 
@@ -100,6 +122,25 @@ required: the `uaccess` tag must be set *before* systemd's seat rules apply.
 > input — the assumed trade-off for a PSR-style recorder on Wayland. Screen
 > capture additionally goes through the portal (consent popup, reusable token).
 
+The rule is only needed to **record**: opening, editing, merging, saving and
+exporting guides work without it.
+
+### RHEL 10
+
+Release builds include `ssr-<version>-rhel10-<arch>.tar.gz`, built against RHEL
+10's glibc and PipeWire. Same install flow:
+
+```bash
+tar xzf ssr-<version>-rhel10-x86_64.tar.gz && cd ssr-<version>-rhel10-x86_64
+sudo ./packaging/install-linux.sh   # app + menu entry + input rule
+```
+
+Log out and back in, then Activities → **Support Step Recorder** (or `ssr`).
+
+To build it yourself (RHEL 10 with CRB, or any EL10 rebuild), or from any
+machine with podman/docker, including air-gapped builds, see
+[`packaging/rhel/README-RHEL10.md`](packaging/rhel/README-RHEL10.md).
+
 ### License
 
 MIT.
@@ -113,9 +154,11 @@ MIT.
 
 À chaque clic, `ssr` capture la fenêtre concernée, relève le **bouton de souris**,
 agrège le **texte saisi** entre deux clics et — quand c'est disponible — les
-infos de la **fenêtre active**. À l'arrêt, il demande **où enregistrer** et écrit
-un `.zip` regroupant les captures WebP, un `steps.json` et un **rapport HTML**
-autoportant et rejouable.
+infos de la **fenêtre active**. À l'arrêt, vous arrivez dans l'**éditeur de
+guide** : renommez et décrivez les étapes, réordonnez-les ou supprimez-les,
+combinez plusieurs enregistrements, puis enregistrez un **projet** éditable
+(`.ssrproj`) et exportez un `.zip` regroupant les captures, un `steps.json` et un
+**rapport HTML** autoportant et rejouable.
 
 L'interface est disponible en **français et anglais** (détectée depuis la locale,
 basculable via le bouton `FR`/`EN`).
@@ -132,7 +175,20 @@ basculable via le bouton `FR`/`EN`).
 - **Ne bloque jamais** : l'encodage WebP et l'écriture disque se font dans un
   thread d'écriture dédié — le clic reste instantané.
 - **Rapport HTML rejouable** : mode relecture pas à pas, **zoom** au clic sur une
-  capture, navigation clavier.
+  capture, navigation clavier, imprimable.
+- **Éditeur de guide** : titres d'étape personnalisés et consignes sur plusieurs
+  lignes, glisser-déposer (ou Alt+↑/↓) pour réordonner, sélection multiple
+  (Ctrl+clic, Maj+clic, Ctrl+A) pour déplacer ou supprimer plusieurs étapes
+  d'un coup, suppression d'une étape
+  ou de sa seule capture, ajout d'images PNG/JPEG/WebP ou d'étapes rédigées,
+  masquage du texte saisi, annuler/rétablir.
+- **Réutiliser d'anciens enregistrements** : ouvrir un ZIP exporté par la v0.2.0
+  ou plus récente, ou importer des étapes choisies de plusieurs enregistrements
+  dans un guide unique. Les archives d'origine ne sont jamais modifiées ; deux
+  captures de même nom ne s'écrasent jamais.
+- **Projets** : enregistrer le guide en `.ssrproj`, le rouvrir plus tard et
+  continuer ; l'export ZIP est une action distincte. Un travail non enregistré
+  est signalé avant d'être remplacé, et récupéré après un plantage.
 - **Multi-OS par conception** : Windows, macOS, Linux (X11 et Wayland). La capture de
   fenêtre macOS compile en CI mais n'a pas encore été essayée sur un vrai Mac : vos retours sont bienvenus.
 
@@ -155,15 +211,25 @@ compilation (`cfg`) et à l'exécution (Wayland ou non) :
 
 ### Déroulé
 
-1. **Démarrer** — les captures sont écrites dans un dossier **temporaire**
-   (volatile).
+1. **Démarrer** — les captures sont écrites dans un dossier de travail **privé**
+   (`~/.cache/ssr` sous Linux, mode 0700).
 2. Réaliser les actions à documenter (clics, saisies).
-3. **Arrêter** — un dialogue natif **« Enregistrer sous… »** s'ouvre ; choisis un
-   emplacement et le rapport `ZIP + HTML` y est généré. (Annuler → confirmer
-   l'abandon ou réessayer.)
+3. **Arrêter** — vous arrivez dans l'**éditeur**, rien n'est encore écrit
+   ailleurs. Renommez, ajoutez des consignes, réordonnez, supprimez, importez des
+   étapes d'autres enregistrements (**Importer…**), ajoutez des images.
+4. **Enregistrer le projet** (Ctrl+S) écrit un `.ssrproj` éditable ; **Exporter le
+   guide…** (Ctrl+E) écrit le `.zip` à partager. Les deux écrivent d'abord un
+   fichier temporaire et ne remplacent la cible qu'une fois complet.
 
-Le `.zip` contient `report.html`, `steps.json` et toutes les `step-XXXX.webp`. Le
-HTML référence les WebP (ils voyagent ensemble dans le zip).
+| Fichier | Contenu | Usage |
+|---|---|---|
+| `.ssrproj` | `project.json`, `steps.json`, `assets/<sha256>.<ext>` | Rouvrir et continuer l'édition |
+| `.zip` (export) | `report.html`, `steps.json`, les images référencées | Envoyer au support / à des collègues |
+
+`ssr fichier.ssrproj` ou `ssr enregistrement.zip` ouvre un fichier au démarrage.
+Les archives importées sont considérées comme non fiables : seuls `steps.json` et
+les images qu'il nomme sont lus (jamais `report.html`) ; chemins, tailles et
+formats d'image sont vérifiés.
 
 ### Compilation & lancement
 
@@ -197,6 +263,25 @@ d'entrée. Le préfixe `60-` est indispensable : le tag `uaccess` doit être pos
 > les entrées clavier/souris — le compromis assumé pour un enregistreur de type
 > PSR sous Wayland. La capture d'**écran** passe en plus par le portail (popup de
 > consentement, jeton réutilisable).
+
+La règle n'est nécessaire que pour **enregistrer** : ouvrir, éditer, combiner,
+enregistrer et exporter des guides fonctionne sans elle.
+
+### RHEL 10
+
+Les releases incluent `ssr-<version>-rhel10-<arch>.tar.gz`, compilé contre la
+glibc et PipeWire de RHEL 10. Même installation :
+
+```bash
+tar xzf ssr-<version>-rhel10-x86_64.tar.gz && cd ssr-<version>-rhel10-x86_64
+sudo ./packaging/install-linux.sh   # application + menu + règle d'entrée
+```
+
+Reconnectez-vous, puis Activités → **Support Step Recorder** (ou `ssr`).
+
+Pour le compiler soi-même (RHEL 10 avec CRB, ou une recompilation EL10), ou
+depuis n'importe quelle machine avec podman/docker, y compris hors ligne, voir
+[`packaging/rhel/README-RHEL10.md`](packaging/rhel/README-RHEL10.md).
 
 ### Licence
 

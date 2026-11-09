@@ -207,7 +207,11 @@ pub fn status_bar(app: &App, root: &mut egui::Ui, activity: Option<&str>) {
                             egui::Label::new(
                                 RichText::new(app.status.text(lang))
                                     .size(theme::SIZE_SMALL)
-                                    .color(p.text_muted),
+                                    .color(if app.status.is_error() {
+                                        p.record
+                                    } else {
+                                        p.text_muted
+                                    }),
                             )
                             .truncate(),
                         );
