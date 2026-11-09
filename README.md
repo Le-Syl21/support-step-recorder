@@ -131,9 +131,10 @@ Release builds include `ssr-<version>-rhel10-<arch>.tar.gz`, built against RHEL
 
 ```bash
 tar xzf ssr-<version>-rhel10-x86_64.tar.gz && cd ssr-<version>-rhel10-x86_64
-sudo ./packaging/install-linux.sh   # for recording on Wayland
-./ssr
+sudo ./packaging/install-linux.sh   # app + menu entry + input rule
 ```
+
+Log out and back in, then Activities → **Support Step Recorder** (or `ssr`).
 
 To build it yourself (RHEL 10 with CRB, or any EL10 rebuild), or from any
 machine with podman/docker, including air-gapped builds, see
@@ -270,9 +271,10 @@ glibc et PipeWire de RHEL 10. Même installation :
 
 ```bash
 tar xzf ssr-<version>-rhel10-x86_64.tar.gz && cd ssr-<version>-rhel10-x86_64
-sudo ./packaging/install-linux.sh   # pour enregistrer sous Wayland
-./ssr
+sudo ./packaging/install-linux.sh   # application + menu + règle d'entrée
 ```
+
+Reconnectez-vous, puis Activités → **Support Step Recorder** (ou `ssr`).
 
 Pour le compiler soi-même (RHEL 10 avec CRB, ou une recompilation EL10), ou
 depuis n'importe quelle machine avec podman/docker, y compris hors ligne, voir

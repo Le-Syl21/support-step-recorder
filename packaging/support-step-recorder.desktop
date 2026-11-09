@@ -1,0 +1,15 @@
+[Desktop Entry]
+Type=Application
+Name=Support Step Recorder
+Name[fr]=Support Step Recorder
+GenericName=Step recorder and guide editor
+GenericName[fr]=Enregistreur d'étapes et éditeur de guide
+Comment=Record clicks and screenshots, edit them into a step-by-step guide
+Comment[fr]=Enregistre clics et captures, puis les transforme en guide pas à pas
+Exec=ssr %f
+Icon=support-step-recorder
+Terminal=false
+Categories=Utility;Documentation;
+Keywords=psr;steps;recorder;screenshot;guide;tutorial;
+StartupNotify=true
+StartupWMClass=support-step-recorder

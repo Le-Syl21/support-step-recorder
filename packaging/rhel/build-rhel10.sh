@@ -5,8 +5,8 @@
 #
 #   tar xzf ssr-<version>-rhel10-<arch>.tar.gz
 #   cd ssr-<version>-rhel10-<arch>
-#   sudo ./packaging/install-linux.sh     # udev rule for Wayland input capture
-#   ./ssr
+#   sudo ./packaging/install-linux.sh     # app + menu entry + udev rule
+#   (log out/in) then Activities → "Support Step Recorder", or: ssr
 #
 # Usage (from the repository root):
 #   packaging/rhel/build-rhel10.sh [--install-deps] [--offline] [--out DIR]
@@ -122,6 +122,8 @@ mkdir -p "$STAGE/$NAME/packaging"
 install -m 0755 "$BIN" "$STAGE/$NAME/ssr"
 install -m 0755 packaging/install-linux.sh "$STAGE/$NAME/packaging/install-linux.sh"
 install -m 0644 packaging/60-ssr-input.rules "$STAGE/$NAME/packaging/60-ssr-input.rules"
+install -m 0644 packaging/support-step-recorder.desktop "$STAGE/$NAME/packaging/"
+install -m 0644 packaging/support-step-recorder.svg "$STAGE/$NAME/packaging/"
 install -m 0644 packaging/rhel/README-RHEL10.md "$STAGE/$NAME/README-RHEL10.md"
 
 # Record what the binary links against, for the runtime package list.

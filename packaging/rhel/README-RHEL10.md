@@ -5,12 +5,20 @@
 ```bash
 tar xzf ssr-<version>-rhel10-x86_64.tar.gz
 cd ssr-<version>-rhel10-x86_64
-sha256sum -c ../ssr-<version>-rhel10-x86_64.tar.gz.sha256   # optional, before extracting
-sudo ./packaging/install-linux.sh    # only needed to RECORD on Wayland (see below)
-./ssr
+sudo ./packaging/install-linux.sh
 ```
 
-`./ssr guide.ssrproj` or `./ssr recording.zip` opens that file directly.
+The script installs the app (`/usr/local/bin/ssr`), its entry in the
+applications menu, and the input-capture rule. **Log out and back in**, then
+open **Activities**, type **Support Step Recorder** and click it (or run `ssr`
+in a terminal). Right-click the icon → *Pin to Dash* to keep it in the dash.
+
+`ssr guide.ssrproj` or `ssr recording.zip` opens that file directly; in Files,
+*Open With → Support Step Recorder* does the same.
+
+Run it as your normal user, never with `sudo`. To try it without installing
+anything, `./ssr` from the extracted folder works too (in a terminal; Files
+does not run programs on double-click).
 
 ### Runtime packages
 
@@ -48,10 +56,12 @@ allowed can still be used to prepare guides from recordings made elsewhere.
 Screen capture on Wayland goes through `xdg-desktop-portal` + PipeWire: GNOME
 asks once which window or screen to share.
 
-Uninstall the rule:
+Uninstall (app, menu entry and rule):
 
 ```bash
-sudo rm /etc/udev/rules.d/60-ssr-input.rules
+sudo rm -f /usr/local/bin/ssr /usr/local/share/applications/support-step-recorder.desktop \
+    /usr/local/share/icons/hicolor/scalable/apps/support-step-recorder.svg \
+    /etc/udev/rules.d/60-ssr-input.rules
 sudo udevadm control --reload-rules && sudo udevadm trigger --subsystem-match=input
 ```
 
