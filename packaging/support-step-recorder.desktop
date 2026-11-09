@@ -7,6 +7,7 @@ GenericName[fr]=Enregistreur d'étapes et éditeur de guide
 Comment=Record clicks and screenshots, edit them into a step-by-step guide
 Comment[fr]=Enregistre clics et captures, puis les transforme en guide pas à pas
 Exec=ssr %f
+MimeType=application/zip;
 Icon=support-step-recorder
 Terminal=false
 Categories=Utility;Documentation;
