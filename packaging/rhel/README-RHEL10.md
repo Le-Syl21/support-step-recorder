@@ -17,13 +17,16 @@ sudo ./packaging/install-linux.sh    # only needed to RECORD on Wayland (see bel
 A RHEL 10 Workstation (GNOME) install already has them. On a minimal system:
 
 ```bash
-sudo dnf install pipewire-libs libxkbcommon libxkbcommon-x11 mesa-libGL mesa-libEGL \
-    libX11 libXcursor libXi libXrandr libwayland-client dbus-libs \
+sudo dnf install pipewire-libs libX11 libxcb \
+    libxkbcommon libxkbcommon-x11 mesa-libGL mesa-libEGL libwayland-client \
+    libXcursor libXi libXrandr \
     xdg-desktop-portal xdg-desktop-portal-gnome
 ```
 
-`packaging/linked-libraries.txt` in this archive lists what the binary links
-against (from `ldd` on the build machine).
+The binary links directly only against glibc, `libX11`, `libxcb`, `libXau` and
+`libpipewire-0.3` (`packaging/linked-libraries.txt` in this archive, from `ldd`
+on the build machine); the windowing and OpenGL libraries are loaded at start,
+and D-Bus (portals) is spoken natively, without `libdbus`.
 
 ## What `install-linux.sh` does — and when you need it
 
