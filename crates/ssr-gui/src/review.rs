@@ -89,25 +89,38 @@ fn steps_list(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>, nav: bo
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 4.0;
             let mut rects: Vec<(Uuid, Rect)> = Vec::with_capacity(rows.len());
+            let multi = app.multi.len() > 1;
             for row in rows {
                 let is_sel = current == Some(row.id);
+                let in_selection = multi && app.multi.contains(&row.id);
                 let thumb = row
                     .screenshot
                     .as_deref()
                     .and_then(|name| app.textures.thumb(ui.ctx(), &snap.dir, name));
-                let dragged = app.dragging == Some(row.id);
+                // While dragging a selection, every selected row is outlined.
+                let dragged = app.dragging == Some(row.id)
+                    || (app.dragging.is_some_and(|d| app.multi.contains(&d)) && in_selection);
                 let state = RowState {
                     selected: is_sel,
+                    in_selection,
                     dragged,
                     editable,
                     guide: snap.editable,
                 };
                 let resp = step_row(ui, row, state, thumb.as_ref(), lang);
                 if resp.clicked() {
-                    app.select(row.id);
+                    let modifiers = ui.input(|i| i.modifiers);
+                    if snap.editable {
+                        app.click_select(row.id, modifiers);
+                    } else {
+                        app.select(row.id);
+                    }
                 }
                 if editable && resp.drag_started() {
-                    app.select(row.id);
+                    // Dragging a row of the selection moves the selection.
+                    if !app.is_selected(row.id) {
+                        app.select(row.id);
+                    }
                     app.dragging = Some(row.id);
                 }
                 if is_sel && (nav || follow_new) {
@@ -132,10 +145,31 @@ fn drag_and_drop(app: &mut App, ui: &mut egui::Ui, rects: &[(Uuid, Rect)]) {
             i.pointer.any_released() || !i.pointer.any_down(),
         )
     });
-    let Some(from) = rects.iter().position(|(id, _)| *id == dragged) else {
+    if !rects.iter().any(|(id, _)| *id == dragged) {
         app.dragging = None;
         return;
+    }
+    // Rows that move: the selection if the dragged row is part of it.
+    let moving: Vec<usize> = if app.is_selected(dragged) {
+        let sel = app.selection();
+        rects
+            .iter()
+            .enumerate()
+            .filter(|(_, (id, _))| sel.contains(id))
+            .map(|(i, _)| i)
+            .collect()
+    } else {
+        rects
+            .iter()
+            .position(|(id, _)| *id == dragged)
+            .into_iter()
+            .collect()
     };
+    let (first, last) = (
+        moving.first().copied().unwrap_or(0),
+        moving.last().copied().unwrap_or(0),
+    );
+    let contiguous = last + 1 - first == moving.len();
     let Some(pos) = pointer else {
         if released {
             app.dragging = None;
@@ -155,7 +189,8 @@ fn drag_and_drop(app: &mut App, ui: &mut egui::Ui, rects: &[(Uuid, Rect)]) {
         .first()
         .map(|(_, r)| (r.left(), r.right()))
         .unwrap_or_default();
-    let noop = slot == from || slot == from + 1;
+    // Dropping a contiguous block next to itself changes nothing.
+    let noop = contiguous && slot >= first && slot <= last + 1;
     if !noop {
         ui.painter().line_segment(
             [egui::pos2(left + 4.0, y), egui::pos2(right - 4.0, y)],
@@ -175,8 +210,7 @@ fn drag_and_drop(app: &mut App, ui: &mut egui::Ui, rects: &[(Uuid, Rect)]) {
     if released {
         app.dragging = None;
         if !noop {
-            let to = if slot > from { slot - 1 } else { slot };
-            app.edit(|d| d.move_step(dragged, to));
+            app.drop_steps(dragged, slot);
         }
     }
 }
@@ -184,7 +218,10 @@ fn drag_and_drop(app: &mut App, ui: &mut egui::Ui, rects: &[(Uuid, Rect)]) {
 /// How a row is drawn.
 #[derive(Clone, Copy)]
 struct RowState {
+    /// The step shown on the right.
     selected: bool,
+    /// Part of a multiple selection.
+    in_selection: bool,
     dragged: bool,
     /// The row can be dragged (an editable guide, nothing running).
     editable: bool,
@@ -201,6 +238,7 @@ fn step_row(
 ) -> egui::Response {
     let RowState {
         selected,
+        in_selection,
         dragged,
         editable,
         guide,
@@ -214,7 +252,9 @@ fn step_row(
     };
     let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, ROW_HEIGHT), sense);
     let title = format!("{}. {}", row.index, row.short_title(lang));
-    resp.widget_info(|| WidgetInfo::selected(Role::ListItem, true, selected, &title));
+    resp.widget_info(|| {
+        WidgetInfo::selected(Role::ListItem, true, selected || in_selection, &title)
+    });
     if !ui.is_rect_visible(rect) {
         return resp;
     }
@@ -228,6 +268,9 @@ fn step_row(
             Stroke::new(1.5, p.accent),
             egui::StrokeKind::Inside,
         );
+    }
+    if in_selection && !selected {
+        painter.rect_filled(rect, radius, p.tint(p.accent, 26));
     }
     if selected {
         painter.rect_filled(rect, radius, p.tint(p.accent, 40));
@@ -350,9 +393,9 @@ fn step_row(
     if editable {
         resp.on_hover_cursor(egui::CursorIcon::Grab)
             .on_hover_text(lang.pick(
-                "Glisser pour déplacer · Alt+↑/↓",
-                "Drag to move · Alt+Up/Down",
-            ))
+            "Glisser pour déplacer · Alt+↑/↓\nCtrl+clic / Maj+clic : sélectionner plusieurs étapes",
+            "Drag to move · Alt+Up/Down\nCtrl+click / Shift+click: select several steps",
+        ))
     } else {
         resp.on_hover_cursor(egui::CursorIcon::PointingHand)
     }
@@ -538,6 +581,10 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
 /// text is typed into a draft and written back on Enter / focus loss, so a
 /// redraw never overwrites it; Escape drops the change.
 fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
+    if app.multi.len() > 1 {
+        multi_properties(app, ui);
+        return;
+    }
     let lang = app.lang;
     let p = pal(ui.ctx());
     let enabled = app.can_edit();
@@ -728,6 +775,125 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
         6 => {
             app.edit(|d| d.redact_text(id));
         }
+        _ => {}
+    }
+}
+
+/// Several steps selected: act on all of them at once.
+fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
+    let lang = app.lang;
+    let p = pal(ui.ctx());
+    let enabled = app.can_edit();
+    let selection = app.selection();
+    let n = selection.len();
+    let count = app.snapshot.as_ref().map(|s| s.rows.len()).unwrap_or(0);
+    let positions: Vec<usize> = app
+        .snapshot
+        .as_ref()
+        .map(|s| selection.iter().filter_map(|id| s.position(*id)).collect())
+        .unwrap_or_default();
+    // Up is possible unless the selection is already packed at the top
+    // (and likewise for down).
+    let can_up = positions.iter().enumerate().any(|(k, &i)| i != k);
+    let can_down = positions
+        .iter()
+        .rev()
+        .enumerate()
+        .any(|(k, &i)| i + 1 + k != count);
+
+    ui.horizontal(|ui| {
+        icons::icon(ui, Icon::Check, 16.0, p.accent_text);
+        ui.label(
+            RichText::new(format!(
+                "{n} {}",
+                lang.pick("étapes sélectionnées", "steps selected")
+            ))
+            .size(16.0)
+            .strong()
+            .color(p.text),
+        );
+    });
+    let numbers: Vec<String> = positions.iter().map(|i| (i + 1).to_string()).collect();
+    ui.add(
+        egui::Label::new(
+            RichText::new(format!(
+                "{} {}",
+                lang.pick("Étapes", "Steps"),
+                numbers.join(", ")
+            ))
+            .size(theme::SIZE_SMALL)
+            .color(p.text_muted),
+        )
+        .wrap(),
+    );
+    ui.add_space(8.0);
+    let mut act = 0;
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.add_enabled_ui(can_up, |ui| {
+                if widgets::icon_button(
+                    ui,
+                    Icon::ArrowUp,
+                    lang.pick("Monter (Alt+↑)", "Move up (Alt+Up)"),
+                )
+                .clicked()
+                {
+                    act = 1;
+                }
+            });
+            ui.add_enabled_ui(can_down, |ui| {
+                if widgets::icon_button(
+                    ui,
+                    Icon::ArrowDown,
+                    lang.pick("Descendre (Alt+↓)", "Move down (Alt+Down)"),
+                )
+                .clicked()
+                {
+                    act = 2;
+                }
+            });
+            let label = format!(
+                "{} {n} {}",
+                lang.pick("Supprimer les", "Delete"),
+                lang.pick("étapes", "steps")
+            );
+            if widgets::button(ui, Kind::Ghost, Some(Icon::Trash), &label)
+                .on_hover_text(
+                    lang.pick("Suppr ; Ctrl+Z pour annuler", "Delete key; Ctrl+Z to undo"),
+                )
+                .clicked()
+            {
+                act = 3;
+            }
+        });
+    });
+    ui.add_space(6.0);
+    ui.add(
+        egui::Label::new(
+            RichText::new(lang.pick(
+                "Glissez une des étapes sélectionnées pour les déplacer ensemble. Ctrl+clic ajoute ou retire une étape, Maj+clic sélectionne une plage, Ctrl+A tout, Échap revient à une seule étape.",
+                "Drag one of the selected steps to move them together. Ctrl+click adds or removes a step, Shift+click selects a range, Ctrl+A all, Esc goes back to one step.",
+            ))
+            .size(theme::SIZE_SMALL)
+            .color(p.text_faint),
+        )
+        .wrap(),
+    );
+    if widgets::button(
+        ui,
+        Kind::Secondary,
+        None,
+        lang.pick("Une seule étape", "Single step"),
+    )
+    .clicked()
+    {
+        act = 4;
+    }
+    match act {
+        1 => app.move_selected(-1),
+        2 => app.move_selected(1),
+        3 => app.delete_selection(),
+        4 => app.clear_multi(),
         _ => {}
     }
 }

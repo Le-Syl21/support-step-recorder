@@ -24,7 +24,7 @@ until it is saved or exported.
 |---|---|
 | `model.rs` | `Step` gains `id`, `title_override`, `notes`, `source: StepSource`, `kind: StepKind` — all `serde(default)`, so v0.2.0 `steps.json` loads unchanged and exports stay readable by v0.2.0 (optional fields only). `Step::manual`, `auto_title`, `display_title`. |
 | `session.rs` | Assigns an id to each recorded step. Capture loop untouched. |
-| `editor.rs` | **New.** `EditorDocument`: steps in guide order, metadata, workspace, asset store, revisions (`is_dirty` vs `is_exported`), undo/redo (50 entries), recovery copy. Commands: `set_title`, `set_notes`, `detach_screenshot`, `attach_screenshot`, `delete_step`, `move_step`, `insert_steps`, `import_steps`/`import_many`, `add_manual_step`, `redact_text`, `set_guide_info`. Every command renumbers 1..N. |
+| `editor.rs` | **New.** `EditorDocument`: steps in guide order, metadata, workspace, asset store, revisions (`is_dirty` vs `is_exported`), undo/redo (50 entries), recovery copy. Commands: `set_title`, `set_notes`, `detach_screenshot`, `attach_screenshot`, `delete_step`, `move_step`, `insert_steps`, `import_steps`/`import_many`, `add_manual_step`, `redact_text`, `set_guide_info`; for a multiple selection `delete_steps`, `move_steps_to` (drop as a block), `shift_steps` (up/down one place, blocked steps stay). Every command renumbers 1..N. |
 | `workspace.rs` | **New.** Private workspaces under `$XDG_CACHE_HOME/ssr/workspaces/<uuid>` (0700, lock file held while open). `scan_abandoned` finds crashed sessions with unsaved work and removes the others. |
 | `assets.rs` | **New.** Content-addressed store `assets/<sha256>.<png|jpg|webp>` (files 0600, atomic). Format sniffed from magic bytes; dimensions checked from the header before decoding; full decode under an allocation limit. |
 | `archive.rs` | **New.** `SafeArchive`: refuses unsafe member names (absolute, `..`, `\`, `:`, NUL), symlinks, duplicate names, too many entries, too large (declared and actual decompressed bytes). Members are read into memory only on demand; nothing is extracted by name. |
@@ -37,7 +37,7 @@ until it is saved or exported.
 | File | Role |
 |---|---|
 | `app.rs` | Stop → `EditorDocument::from_session` → editor. Background jobs (save, export, open, read for import) with a progress modal; editing is disabled meanwhile. `Intent` + unsaved-changes prompt (new recording, open, close, quit — window close is intercepted). Draft buffer for title/notes. Keyboard: Ctrl+Z, Ctrl+Shift+Z/Ctrl+Y, Ctrl+S, Ctrl+Shift+S, Ctrl+E, Alt+↑/↓, Delete. Autosave of the recovery copy (3 s throttle). `ssr <file>` opens a file at start. |
-| `review.rs` | Timeline with drag and drop (insertion line, edge scrolling), step properties panel (title, instructions, move, delete, add/replace/remove screenshot, redact typed text), source metadata. |
+| `review.rs` | Timeline with multiple selection (Ctrl+click toggles, Shift+click range, Ctrl+A, Shift+↑/↓, Esc) and drag and drop of the whole selection (insertion line, edge scrolling), step properties panel (title, instructions, move, delete, add/replace/remove screenshot, redact typed text), source metadata. |
 | `screens.rs` | Start screen: Open project / Open recording, recovery banner. Editor header: title (click to edit), saved/exported pills, Undo/Redo, Import…, Step, Image…, Save project, Export guide…, New recording, More… (compact on narrow windows). |
 | `editor_sources.rs` | **New.** Import dialog: recordings with step thumbnails/titles/checkboxes, All/None, insert at end / after selection / at start, per-step image warnings. |
 | `dialogs.rs` | Unsaved changes, privacy notice (before the first recording), guide details, “replace or insert?” for an added image, warnings, job progress. |
@@ -54,7 +54,7 @@ its tarballs join the release.
 
 ## Acceptance status
 
-Automated: `cargo test --workspace` (65 tests). Manual: GUI driven with
+Automated: `cargo test --workspace` (66 tests). Manual: GUI driven with
 xdotool on Xvfb (X11) on Ubuntu 24.04; see “Not verified”.
 
 | ID | How verified | Result |
@@ -75,6 +75,7 @@ xdotool on Xvfb (X11) on Ubuntu 24.04; see “Not verified”.
 | A14 Cancel Save As / Export | Code path: dialog `None` → nothing happens, not a discard | ⚠️ not exercised (no portal headless) |
 | A15 Failed export keeps previous | `a15_failed_export_keeps_previous_file`, `failed_save_keeps_previous_project` | ✅ |
 | A16 Undo/redo | `a16_undo_redo_and_dirty_state`; manual (import undone in one step) | ✅ |
+| Multi-select delete/move | `multi_delete_and_move`; manual (Ctrl+click ×3 + Delete, undo, Shift range dragged to the end) | ✅ |
 | A17 Empty report | `a17_empty_guide_exports` | ✅ |
 | A18 EN/FR titles | `a18_titles_and_languages`; manual (FR UI) | ✅ |
 | A19 HTML escaping | `a12…` (`<script>`, `<img onerror>`, quotes, `'`) | ✅ |

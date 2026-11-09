@@ -327,3 +327,56 @@ fn recovers_after_a_crash() {
     doc.close();
     assert!(!dir.exists());
 }
+
+/// Multiple selection: several steps deleted or moved as one undoable edit.
+#[test]
+fn multi_delete_and_move() {
+    let scratch = Scratch::new("multi");
+    let mut doc = doc_with(&scratch, 6);
+    let ids: Vec<_> = doc.steps().iter().map(|s| s.id.unwrap()).collect();
+    let short = |doc: &EditorDocument| -> Vec<String> {
+        titles(doc).iter().map(|t| t.replace("Step ", "")).collect()
+    };
+
+    // Delete 2, 4, 5 at once; one undo restores them all.
+    doc.delete_steps(&[ids[4], ids[1], ids[3]]).unwrap();
+    assert_eq!(short(&doc), ["1", "3", "6"]);
+    assert_numbered(&doc);
+    doc.undo().unwrap();
+    assert_eq!(short(&doc), ["1", "2", "3", "4", "5", "6"]);
+    assert!(doc.delete_steps(&[ids[0], uuid::Uuid::new_v4()]).is_err());
+    assert_eq!(doc.steps().len(), 6, "unknown id: nothing deleted");
+
+    // Drag 2 and 5 (non-contiguous) before 1: they land as a block, in order.
+    doc.move_steps_to(&[ids[4], ids[1]], 0).unwrap();
+    assert_eq!(short(&doc), ["2", "5", "1", "3", "4", "6"]);
+    assert_numbered(&doc);
+    // ...and to the end.
+    doc.move_steps_to(&[ids[1], ids[4]], 6).unwrap();
+    assert_eq!(short(&doc), ["1", "3", "4", "6", "2", "5"]);
+    // Dropping a contiguous block onto itself changes nothing.
+    assert_eq!(
+        doc.move_steps_to(&[ids[1], ids[4]], 5),
+        Err(EditError::NoChange)
+    );
+    doc.undo().unwrap();
+    doc.undo().unwrap();
+    assert_eq!(short(&doc), ["1", "2", "3", "4", "5", "6"]);
+
+    // Up/down one place: blocked steps stay, the others move.
+    doc.shift_steps(&[ids[0], ids[2], ids[4]], -1).unwrap();
+    assert_eq!(short(&doc), ["1", "3", "2", "5", "4", "6"]);
+    // "6" is last and blocks "4" below it: neither moves.
+    assert_eq!(
+        doc.shift_steps(&[ids[3], ids[5]], 1),
+        Err(EditError::NoChange)
+    );
+    doc.shift_steps(&[ids[1], ids[3]], 1).unwrap();
+    assert_eq!(short(&doc), ["1", "3", "5", "2", "6", "4"]);
+    assert_eq!(
+        doc.shift_steps(&[ids[0], ids[2]], -1),
+        Err(EditError::NoChange)
+    );
+    assert_eq!(doc.steps()[0].id, Some(ids[0]), "ids stable through moves");
+    doc.close();
+}

@@ -467,6 +467,106 @@ impl EditorDocument {
         })
     }
 
+    /// Positions of `ids` in the guide, ascending; every id must exist.
+    fn positions_of(&self, ids: &[Uuid]) -> Result<Vec<usize>, EditError> {
+        let mut pos = ids
+            .iter()
+            .map(|&id| self.index_of(id))
+            .collect::<Result<Vec<_>, _>>()?;
+        pos.sort_unstable();
+        pos.dedup();
+        Ok(pos)
+    }
+
+    /// Delete several steps at once (one undo entry).
+    pub fn delete_steps(&mut self, ids: &[Uuid]) -> Result<(), EditError> {
+        let pos = self.positions_of(ids)?;
+        if pos.is_empty() {
+            return Err(EditError::NoChange);
+        }
+        self.edit(EditKind::Delete, |_, steps| {
+            for &i in pos.iter().rev() {
+                steps.remove(i);
+            }
+            Ok(())
+        })
+    }
+
+    /// Move several steps, as one block in their current order, so that they
+    /// land before the step now at `slot` (`slot == len`: at the end). This
+    /// is what a drag and drop of a multiple selection does.
+    pub fn move_steps_to(&mut self, ids: &[Uuid], slot: usize) -> Result<(), EditError> {
+        let pos = self.positions_of(ids)?;
+        let len = self.steps.len();
+        if slot > len {
+            return Err(EditError::OutOfRange { index: slot, len });
+        }
+        if pos.is_empty() {
+            return Err(EditError::NoChange);
+        }
+        let moved: Vec<Step> = pos.iter().map(|&i| self.steps[i].clone()).collect();
+        let mut rest: Vec<Step> = self
+            .steps
+            .iter()
+            .enumerate()
+            .filter(|(i, _)| pos.binary_search(i).is_err())
+            .map(|(_, s)| s.clone())
+            .collect();
+        let before = pos.iter().filter(|&&i| i < slot).count();
+        let at = slot - before;
+        rest.splice(at..at, moved);
+        if rest
+            .iter()
+            .map(|s| s.id)
+            .eq(self.steps.iter().map(|s| s.id))
+        {
+            return Err(EditError::NoChange);
+        }
+        self.edit(EditKind::Move, |_, steps| {
+            *steps = rest;
+            Ok(())
+        })
+    }
+
+    /// Move each selected step one place up (`delta < 0`) or down. A step
+    /// blocked by the edge or by another selected step stays, so a
+    /// non-contiguous selection moves as the user expects in a list.
+    pub fn shift_steps(&mut self, ids: &[Uuid], delta: isize) -> Result<(), EditError> {
+        let pos = self.positions_of(ids)?;
+        let mut selected = vec![false; self.steps.len()];
+        for &i in &pos {
+            selected[i] = true;
+        }
+        let mut order: Vec<usize> = (0..self.steps.len()).collect();
+        let n = order.len();
+        let mut changed = false;
+        if delta < 0 {
+            for i in 1..n {
+                if selected[i] && !selected[i - 1] {
+                    order.swap(i, i - 1);
+                    selected.swap(i, i - 1);
+                    changed = true;
+                }
+            }
+        } else {
+            for i in (0..n.saturating_sub(1)).rev() {
+                if selected[i] && !selected[i + 1] {
+                    order.swap(i, i + 1);
+                    selected.swap(i, i + 1);
+                    changed = true;
+                }
+            }
+        }
+        if !changed {
+            return Err(EditError::NoChange);
+        }
+        self.edit(EditKind::Move, |_, steps| {
+            let old = std::mem::take(steps);
+            *steps = order.iter().map(|&i| old[i].clone()).collect();
+            Ok(())
+        })
+    }
+
     /// Insert `new_steps` at zero-based `position` (`len` appends), each with
     /// a fresh id. One undo entry for the whole batch.
     pub fn insert_steps(

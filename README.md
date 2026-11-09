@@ -42,7 +42,8 @@ locale, switchable with the `FR`/`EN` button).
 - **Replayable HTML report**: step-by-step replay mode, click any screenshot to
   **zoom** it, keyboard navigation, printable.
 - **Guide editor**: custom step titles and multi-line instructions, drag and
-  drop (or Alt+↑/↓) to reorder, delete a step or only its screenshot, add
+  drop (or Alt+↑/↓) to reorder, select several steps (Ctrl+click, Shift+click,
+  Ctrl+A) to move or delete them together, delete a step or only its screenshot, add
   PNG/JPEG/WebP images or written steps, redact typed text, undo/redo.
 - **Reuse earlier recordings**: open a ZIP exported by v0.2.0 or later, or import
   chosen steps from several recordings into one master guide. Source archives
@@ -176,7 +177,9 @@ basculable via le bouton `FR`/`EN`).
 - **Rapport HTML rejouable** : mode relecture pas à pas, **zoom** au clic sur une
   capture, navigation clavier, imprimable.
 - **Éditeur de guide** : titres d'étape personnalisés et consignes sur plusieurs
-  lignes, glisser-déposer (ou Alt+↑/↓) pour réordonner, suppression d'une étape
+  lignes, glisser-déposer (ou Alt+↑/↓) pour réordonner, sélection multiple
+  (Ctrl+clic, Maj+clic, Ctrl+A) pour déplacer ou supprimer plusieurs étapes
+  d'un coup, suppression d'une étape
   ou de sa seule capture, ajout d'images PNG/JPEG/WebP ou d'étapes rédigées,
   masquage du texte saisi, annuler/rétablir.
 - **Réutiliser d'anciens enregistrements** : ouvrir un ZIP exporté par la v0.2.0

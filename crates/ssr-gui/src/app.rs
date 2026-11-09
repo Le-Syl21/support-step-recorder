@@ -212,6 +212,11 @@ pub struct App {
     snapshot_key: Option<(u64, u64)>,
     /// Selected step (by id); `None` follows the latest step.
     pub selected: Option<Uuid>,
+    /// Multiple selection (Ctrl/Shift+click), when more than one step is
+    /// selected; `selected` is then the one shown on the right.
+    pub multi: Vec<Uuid>,
+    /// Where a Shift+click range starts.
+    anchor: Option<Uuid>,
     pub status: Status,
     pub textures: Textures,
     /// Long action in progress, shared with the worker threads.
@@ -260,6 +265,8 @@ impl App {
             doc_generation: 0,
             snapshot_key: None,
             selected: None,
+            multi: Vec::new(),
+            anchor: None,
             status: Status::Ready,
             textures: Textures::default(),
             progress: Progress::new(),
@@ -390,6 +397,7 @@ impl App {
     fn set_doc(&mut self, doc: EditorDocument) {
         self.close_doc();
         self.selected = doc.steps().first().and_then(|s| s.id);
+        self.anchor = self.selected;
         self.doc = Some(doc);
         self.doc_generation += 1;
     }
@@ -876,6 +884,115 @@ impl App {
     pub fn select(&mut self, id: Uuid) {
         self.commit_draft();
         self.selected = Some(id);
+        self.multi.clear();
+        self.anchor = Some(id);
+    }
+
+    /// A click on a row: plain (select it), Ctrl (toggle it in the
+    /// selection), Shift (range from the last clicked row), Ctrl+Shift (add
+    /// that range).
+    pub fn click_select(&mut self, id: Uuid, modifiers: egui::Modifiers) {
+        if !modifiers.command && !modifiers.shift {
+            self.select(id);
+            return;
+        }
+        self.commit_draft();
+        let order: Vec<Uuid> = self
+            .snapshot
+            .as_ref()
+            .map(|s| s.rows.iter().map(|r| r.id).collect())
+            .unwrap_or_default();
+        let mut set = self.selection();
+        if modifiers.shift {
+            let anchor = self.anchor.or(self.current_id()).unwrap_or(id);
+            let (a, b) = match (
+                order.iter().position(|&x| x == anchor),
+                order.iter().position(|&x| x == id),
+            ) {
+                (Some(a), Some(b)) => (a.min(b), a.max(b)),
+                _ => return self.select(id),
+            };
+            if !modifiers.command {
+                set.clear();
+            }
+            for &x in &order[a..=b] {
+                if !set.contains(&x) {
+                    set.push(x);
+                }
+            }
+            self.selected = Some(id);
+        } else if let Some(i) = set.iter().position(|&x| x == id) {
+            // Ctrl+click on a selected row: take it out (keep at least one).
+            if set.len() > 1 {
+                set.remove(i);
+                if self.selected == Some(id) {
+                    self.selected = set.last().copied();
+                }
+            }
+            self.anchor = Some(id);
+        } else {
+            set.push(id);
+            self.selected = Some(id);
+            self.anchor = Some(id);
+        }
+        self.multi = if set.len() > 1 { set } else { Vec::new() };
+    }
+
+    /// The selected steps, in guide order (the shown step alone when only
+    /// one is selected).
+    pub fn selection(&self) -> Vec<Uuid> {
+        let Some(snap) = &self.snapshot else {
+            return Vec::new();
+        };
+        if self.multi.len() > 1 {
+            snap.rows
+                .iter()
+                .map(|r| r.id)
+                .filter(|id| self.multi.contains(id))
+                .collect()
+        } else {
+            self.current_id().into_iter().collect()
+        }
+    }
+
+    pub fn is_selected(&self, id: Uuid) -> bool {
+        if self.multi.len() > 1 {
+            self.multi.contains(&id)
+        } else {
+            self.current_id() == Some(id)
+        }
+    }
+
+    pub fn select_all(&mut self) {
+        let Some(snap) = &self.snapshot else { return };
+        let all: Vec<Uuid> = snap.rows.iter().map(|r| r.id).collect();
+        if all.len() > 1 {
+            self.commit_draft();
+            if self.current_id().is_none() {
+                self.selected = all.first().copied();
+            }
+            self.multi = all;
+        }
+    }
+
+    /// Back to a single selection (the shown step).
+    pub fn clear_multi(&mut self) {
+        self.multi.clear();
+    }
+
+    /// Forget selected steps that no longer exist (after undo, delete…).
+    fn prune_selection(&mut self) {
+        if self.multi.is_empty() {
+            return;
+        }
+        let Some(snap) = &self.snapshot else { return };
+        self.multi.retain(|id| snap.position(*id).is_some());
+        if self.multi.len() < 2 {
+            self.multi.clear();
+        }
+        if self.selected.is_some_and(|id| snap.position(id).is_none()) {
+            self.selected = self.multi.last().copied();
+        }
     }
 
     /// Run an edit command on the guide; the typing buffer is re-read after.
@@ -926,28 +1043,51 @@ impl App {
         }
     }
 
+    /// Move the selected step(s) one place up (`-1`) or down (`1`).
     pub fn move_selected(&mut self, delta: isize) {
-        let Some(id) = self.current_id() else { return };
-        let Some(doc) = &self.doc else { return };
-        let Some(pos) = doc.position(id) else { return };
-        let target = pos as isize + delta;
-        if target < 0 || target as usize >= doc.steps().len() {
+        let ids = self.selection();
+        if ids.is_empty() {
             return;
         }
-        self.edit(|d| d.move_step(id, target as usize));
+        self.edit(|d| d.shift_steps(&ids, delta));
     }
 
     /// Delete a step; the nearest remaining one gets the selection.
     pub fn delete_step(&mut self, id: Uuid) {
+        self.delete_steps(&[id]);
+    }
+
+    /// Delete every selected step (one undo).
+    pub fn delete_selection(&mut self) {
+        let ids = self.selection();
+        self.delete_steps(&ids);
+    }
+
+    fn delete_steps(&mut self, ids: &[Uuid]) {
         let Some(doc) = &self.doc else { return };
-        let Some(pos) = doc.position(id) else { return };
-        if self.edit(|d| d.delete_step(id)).is_some() {
+        let Some(first) = ids.iter().filter_map(|id| doc.position(*id)).min() else {
+            return;
+        };
+        if self.edit(|d| d.delete_steps(ids)).is_some() {
             let steps = self.doc.as_ref().map(|d| d.steps()).unwrap_or(&[]);
             self.selected = steps
-                .get(pos)
-                .or_else(|| pos.checked_sub(1).and_then(|p| steps.get(p)))
+                .get(first)
+                .or_else(|| first.checked_sub(1).and_then(|p| steps.get(p)))
                 .and_then(|s| s.id);
+            self.multi.clear();
+            self.anchor = self.selected;
         }
+    }
+
+    /// Drop the dragged step — or the whole selection, if it is part of it —
+    /// before the row now at `slot`.
+    pub fn drop_steps(&mut self, dragged: Uuid, slot: usize) {
+        let ids = if self.is_selected(dragged) {
+            self.selection()
+        } else {
+            vec![dragged]
+        };
+        self.edit(|d| d.move_steps_to(&ids, slot));
     }
 
     /// Insert a new written step after the selected one.
@@ -987,7 +1127,7 @@ impl App {
         if let Some(ids) = self.edit(|d| d.import_many(position, &selections)) {
             self.status = Status::Imported(count);
             if let Some(first) = ids.first() {
-                self.selected = Some(*first);
+                self.select(*first);
             }
         }
         // Images of steps left out were stored for the preview only.
@@ -1025,6 +1165,8 @@ impl App {
     /// Forget everything about the reviewed guide's display.
     fn reset_review(&mut self) {
         self.selected = None;
+        self.multi.clear();
+        self.anchor = None;
         self.textures.clear();
         self.viewer = Viewer::default();
         self.enlarged = None;
@@ -1093,6 +1235,18 @@ impl App {
                     i.consume_key(Modifiers::NONE, Key::Delete),
                 )
             });
+            let (all, escape) = ctx.input_mut(|i| {
+                (
+                    i.consume_shortcut(&shortcut(Modifiers::COMMAND, Key::A)),
+                    !self.multi.is_empty() && i.consume_key(Modifiers::NONE, Key::Escape),
+                )
+            });
+            if all {
+                self.select_all();
+            }
+            if escape {
+                self.clear_multi();
+            }
             if redo {
                 self.redo();
             } else if undo {
@@ -1115,9 +1269,7 @@ impl App {
                 return true;
             }
             if del {
-                if let Some(id) = self.current_id() {
-                    self.delete_step(id);
-                }
+                self.delete_selection();
             }
         }
 
@@ -1129,12 +1281,14 @@ impl App {
         }
         let last = snap.rows.len() - 1;
         let cur = snap.current(self.selected).unwrap_or(last);
-        let (up, down, home, end) = ctx.input(|i| {
+        let (up, down, home, end, shift) = ctx.input(|i| {
+            let plain = i.modifiers.is_none() || i.modifiers.shift_only();
             (
-                i.key_pressed(Key::ArrowUp) && i.modifiers.is_none(),
-                i.key_pressed(Key::ArrowDown) && i.modifiers.is_none(),
+                i.key_pressed(Key::ArrowUp) && plain,
+                i.key_pressed(Key::ArrowDown) && plain,
                 i.key_pressed(Key::Home),
                 i.key_pressed(Key::End),
+                i.modifiers.shift_only(),
             )
         });
         let target = if down && cur < last {
@@ -1151,7 +1305,12 @@ impl App {
         match target {
             Some(t) => {
                 let id = snap.rows[t].id;
-                self.select(id);
+                if shift && self.stage() == Stage::Review {
+                    // Shift+arrows extend the selection.
+                    self.click_select(id, egui::Modifiers::SHIFT);
+                } else {
+                    self.select(id);
+                }
                 true
             }
             None => false,
@@ -1214,9 +1373,11 @@ impl eframe::App for App {
         }
 
         self.refresh_snapshot();
+        self.prune_selection();
         let nav = self.keyboard(&ctx);
         // An edit by shortcut changes the guide: show it this frame.
         self.refresh_snapshot();
+        self.prune_selection();
 
         chrome::top_bar(self, root);
         chrome::status_bar(self, root, activity.as_deref());
