@@ -1,17 +1,21 @@
-//! What the GUI shows of a session: a lock-free copy of its steps, rebuilt
-//! each frame, and the formatting of their metadata.
+//! What the GUI shows of a session or a guide: a lock-free copy of its
+//! steps, and the formatting of their metadata.
 
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex};
+use std::sync::Mutex;
 
-use ssr_core::{session::Session, Action, Lang, WindowInfo};
+use ssr_core::{
+    session::Session, Action, EditorDocument, Lang, Step, StepKind, StepSource, WindowInfo,
+};
+use uuid::Uuid;
 
-/// One step copied out of the session for display (no lock held).
+/// One step copied out for display (no lock held).
 ///
 /// The raw action and window are kept (not the already translated text) so
 /// the description can be rebuilt in the current language.
 #[derive(Clone)]
 pub struct StepRow {
+    pub id: Uuid,
     pub index: usize,
     pub screenshot: Option<String>,
     /// Absolute capture time (ms since the Unix epoch).
@@ -20,34 +24,81 @@ pub struct StepRow {
     pub elapsed_ms: u128,
     pub action: Action,
     pub window: Option<WindowInfo>,
+    pub title_override: Option<String>,
+    pub notes: String,
+    pub kind: StepKind,
+    pub source: Option<StepSource>,
 }
 
 impl StepRow {
-    /// Readable description in the given language.
-    ///
-    /// An untitled window (common on X11 for small tools) is named after its
-    /// application rather than shown as empty quotes.
+    fn from_step(st: &Step) -> Self {
+        Self {
+            // Steps recorded by this version always have an id; a missing one
+            // gets a throw-away id (display only).
+            id: st.id.unwrap_or_else(Uuid::new_v4),
+            index: st.index,
+            screenshot: st.screenshot.clone(),
+            timestamp_ms: st.timestamp_ms,
+            elapsed_ms: st.elapsed_ms,
+            action: st.action.clone(),
+            window: st.window.clone(),
+            title_override: st.title_override.clone(),
+            notes: st.notes.clone(),
+            kind: st.kind,
+            source: st.source.clone(),
+        }
+    }
+
+    fn as_step(&self) -> Step {
+        Step {
+            id: Some(self.id),
+            index: self.index,
+            timestamp_ms: self.timestamp_ms,
+            elapsed_ms: self.elapsed_ms,
+            action: self.action.clone(),
+            window: self.window.clone(),
+            screenshot: None,
+            description: String::new(),
+            title_override: self.title_override.clone(),
+            notes: String::new(),
+            source: None,
+            kind: self.kind,
+        }
+    }
+
+    /// The generated description in the given language (custom title aside).
+    pub fn auto_description(&self, lang: Lang) -> String {
+        self.as_step().auto_title(lang)
+    }
+
+    /// Readable title: the custom one, else the generated description.
     pub fn description(&self, lang: Lang) -> String {
-        let window = self.window.as_ref().map(|w| {
-            if w.title.is_empty() && !w.app_name.is_empty() {
-                WindowInfo {
-                    title: w.app_name.clone(),
-                    app_name: String::new(),
-                    ..w.clone()
-                }
-            } else {
-                w.clone()
-            }
-        });
-        ssr_core::Step::build_description(&self.action, window.as_ref(), lang)
+        self.as_step().display_title(lang)
+    }
+
+    pub fn custom_title(&self) -> Option<&str> {
+        self.title_override
+            .as_deref()
+            .filter(|t| !t.trim().is_empty())
     }
 
     pub fn is_click(&self) -> bool {
         matches!(self.action, Action::Click { .. })
     }
 
-    /// A short title for the list: "Left click" / "Typing".
+    pub fn is_manual(&self) -> bool {
+        self.kind == StepKind::Manual
+    }
+
+    /// A short title for the list: the custom title, or "Left click" /
+    /// "Typing" / "Manual step".
     pub fn short_title(&self, lang: Lang) -> String {
+        if let Some(t) = self.custom_title() {
+            return t.to_string();
+        }
+        if self.is_manual() {
+            return lang.pick("Étape rédigée", "Written step").to_string();
+        }
         match &self.action {
             Action::Click { button, .. } => {
                 let b = button.label(lang);
@@ -73,52 +124,74 @@ impl StepRow {
     }
 }
 
-/// The session as seen by one frame.
+/// The session or guide as seen by one frame.
 #[derive(Clone)]
 pub struct Snapshot {
+    /// Folder the screenshot names are relative to.
     pub dir: PathBuf,
     pub started_at: chrono::DateTime<chrono::Local>,
     pub rows: Vec<StepRow>,
+    /// A stopped guide (editable) rather than a live recording.
+    pub editable: bool,
 }
 
 impl Snapshot {
-    /// Copy the session out; `None` when it is locked (export in progress), so
-    /// the caller keeps the previous snapshot rather than blocking the GUI.
+    /// Copy the session out; `None` when it is locked, so the caller keeps
+    /// the previous snapshot rather than blocking the GUI.
     pub fn try_take(session: &Mutex<Session>) -> Option<Self> {
         let g = session.try_lock().ok()?;
-        let rows = g
-            .steps
-            .iter()
-            .map(|st| StepRow {
-                index: st.index,
-                screenshot: st.screenshot.clone(),
-                timestamp_ms: st.timestamp_ms,
-                elapsed_ms: st.elapsed_ms,
-                action: st.action.clone(),
-                window: st.window.clone(),
-            })
-            .collect();
         Some(Self {
             dir: g.dir.clone(),
             started_at: g.started_at,
-            rows,
+            rows: g.steps.iter().map(StepRow::from_step).collect(),
+            editable: false,
         })
     }
 
-    /// Position of the step `index` in the list.
-    pub fn position(&self, index: usize) -> Option<usize> {
-        self.rows.iter().position(|r| r.index == index)
+    /// Copy a guide out.
+    pub fn of_document(doc: &EditorDocument) -> Self {
+        let started_at = chrono::DateTime::parse_from_rfc3339(&doc.metadata().created_at)
+            .map(|d| d.with_timezone(&chrono::Local))
+            .unwrap_or_else(|_| chrono::Local::now());
+        Self {
+            dir: doc.asset_root().to_path_buf(),
+            started_at,
+            rows: doc.steps().iter().map(StepRow::from_step).collect(),
+            editable: true,
+        }
+    }
+
+    /// Position of step `id` in the list.
+    pub fn position(&self, id: Uuid) -> Option<usize> {
+        self.rows.iter().position(|r| r.id == id)
+    }
+
+    /// The selected row: `selected` if it still exists, else the last one.
+    pub fn current(&self, selected: Option<Uuid>) -> Option<usize> {
+        selected
+            .and_then(|id| self.position(id))
+            .or_else(|| self.rows.len().checked_sub(1))
     }
 }
 
-/// Default ZIP file name, derived from the session folder.
-pub fn default_zip_name(session: &Arc<Mutex<Session>>) -> String {
-    session
-        .lock()
-        .ok()
-        .and_then(|s| s.dir.file_name().map(|n| n.to_string_lossy().into_owned()))
-        .map(|n| format!("{n}.zip"))
-        .unwrap_or_else(|| "session.zip".to_string())
+/// A file name from a guide title: letters, digits, spaces and dashes.
+pub fn file_stem(title: &str) -> String {
+    let s: String = title
+        .chars()
+        .map(|c| {
+            if c.is_alphanumeric() || c == ' ' || c == '-' || c == '_' {
+                c
+            } else {
+                '-'
+            }
+        })
+        .collect();
+    let s = s.trim().trim_matches('-').to_string();
+    if s.is_empty() {
+        "guide".into()
+    } else {
+        s.chars().take(80).collect()
+    }
 }
 
 /// A Unix timestamp (ms) as a readable local date.
@@ -174,6 +247,13 @@ mod tests {
         assert_eq!(clock(0), "0:00");
         assert_eq!(clock(247), "4:07");
         assert_eq!(clock(3729), "1:02:09");
+    }
+
+    #[test]
+    fn file_stems_are_safe() {
+        assert_eq!(file_stem("Network setup"), "Network setup");
+        assert_eq!(file_stem("a/b\\c:d"), "a-b-c-d");
+        assert_eq!(file_stem("../"), "guide");
     }
 
     #[test]

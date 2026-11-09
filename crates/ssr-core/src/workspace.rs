@@ -89,11 +89,14 @@ impl Workspace {
 
     /// Take ownership of an existing workspace folder (recovery).
     pub fn adopt(dir: &Path) -> io::Result<Self> {
-        let lock = fs::OpenOptions::new()
-            .create(true)
-            .truncate(false)
-            .write(true)
-            .open(dir.join(LOCK_FILE))?;
+        let mut opts = fs::OpenOptions::new();
+        opts.create(true).truncate(false).write(true);
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::OpenOptionsExt;
+            opts.mode(0o600);
+        }
+        let lock = opts.open(dir.join(LOCK_FILE))?;
         match lock.try_lock() {
             Ok(()) => {}
             Err(fs::TryLockError::WouldBlock) => {

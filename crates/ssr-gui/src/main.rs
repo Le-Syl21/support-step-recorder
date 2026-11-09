@@ -1,7 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-//! egui/glow interface of Support Step Recorder: record a session, review
-//! its steps, save the report.
+//! egui/glow interface of Support Step Recorder: record a session, edit it
+//! into a guide (and merge earlier recordings), save the project, export the
+//! report.
 //!
 //! # Community & support
 //!
@@ -10,6 +11,7 @@
 mod app;
 mod chrome;
 mod dialogs;
+mod editor_sources;
 mod icons;
 mod prefs;
 mod review;
@@ -26,11 +28,16 @@ use eframe::egui;
 const APP_NAME: &str = "Support Step Recorder";
 
 fn main() -> eframe::Result {
+    // `ssr guide.ssrproj` / `ssr recording.zip`: open that file at start.
+    let open = std::env::args_os()
+        .nth(1)
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_file());
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title(APP_NAME)
             .with_app_id("support-step-recorder")
-            .with_inner_size([1040.0, 700.0])
+            .with_inner_size([1180.0, 760.0])
             .with_min_inner_size([520.0, 420.0]),
         // Rendering through glow (OpenGL), explicitly.
         renderer: eframe::Renderer::Glow,
@@ -39,6 +46,6 @@ fn main() -> eframe::Result {
     eframe::run_native(
         APP_NAME,
         options,
-        Box::new(|cc| Ok(Box::new(app::App::new(cc)))),
+        Box::new(move |cc| Ok(Box::new(app::App::new(cc, open)))),
     )
 }

@@ -164,6 +164,22 @@ pub fn write_atomically(
     path: &Path,
     fill: impl FnOnce(File) -> io::Result<File>,
 ) -> io::Result<()> {
+    write_atomically_with(path, false, fill)
+}
+
+/// [`write_atomically`], the file being readable by its owner only (0600).
+pub(crate) fn write_private_atomically(
+    path: &Path,
+    fill: impl FnOnce(File) -> io::Result<File>,
+) -> io::Result<()> {
+    write_atomically_with(path, true, fill)
+}
+
+fn write_atomically_with(
+    path: &Path,
+    private: bool,
+    fill: impl FnOnce(File) -> io::Result<File>,
+) -> io::Result<()> {
     let dir = path
         .parent()
         .filter(|p| !p.as_os_str().is_empty())
@@ -174,10 +190,14 @@ pub fn write_atomically(
         .unwrap_or_else(|| "output".into());
     let tmp = dir.join(format!(".{name}.{}.tmp", uuid::Uuid::new_v4().simple()));
     let result = (|| {
-        let file = fs::OpenOptions::new()
-            .write(true)
-            .create_new(true)
-            .open(&tmp)?;
+        let file = if private {
+            crate::assets::private_file(&tmp)?
+        } else {
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(&tmp)?
+        };
         let file = fill(file)?;
         file.sync_all()?;
         drop(file);

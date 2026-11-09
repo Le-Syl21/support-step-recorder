@@ -1,4 +1,5 @@
-//! Preferences remembered across runs: theme, zoom and language.
+//! Preferences remembered across runs: theme, zoom, language, the privacy
+//! notice and the last folder used in a file dialog (never any content).
 //!
 //! They go through eframe's own storage (the `persistence` feature): it
 //! already knows the per-OS application data folder (XDG on Linux,
@@ -23,6 +24,10 @@ pub struct Prefs {
     /// "fr" / "en" once the user picked one; absent while the language
     /// still follows the system locale.
     pub lang: Option<String>,
+    /// The keyboard-capture privacy notice was acknowledged.
+    pub privacy_ack: bool,
+    /// Folder of the last project / recording / export picked.
+    pub last_dir: Option<String>,
 }
 
 impl Default for Prefs {
@@ -31,6 +36,8 @@ impl Default for Prefs {
             theme: "system".into(),
             zoom: 1.0,
             lang: None,
+            privacy_ack: false,
+            last_dir: None,
         }
     }
 }
@@ -74,6 +81,21 @@ impl Prefs {
 
     pub fn set_lang(&mut self, lang: Lang) {
         self.lang = Some(lang.code().to_string());
+    }
+
+    /// The folder to open file dialogs in, if it still exists.
+    pub fn last_dir(&self) -> Option<std::path::PathBuf> {
+        self.last_dir
+            .as_ref()
+            .map(std::path::PathBuf::from)
+            .filter(|p| p.is_dir())
+    }
+
+    /// Remember the folder of `path` for the next dialog.
+    pub fn remember_dir(&mut self, path: &std::path::Path) {
+        if let Some(d) = path.parent().filter(|d| !d.as_os_str().is_empty()) {
+            self.last_dir = Some(d.to_string_lossy().into_owned());
+        }
     }
 
     pub fn zoom(&self) -> f32 {

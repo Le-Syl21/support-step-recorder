@@ -474,7 +474,7 @@ impl EditorDocument {
         position: usize,
         new_steps: Vec<Step>,
     ) -> Result<Vec<Uuid>, EditError> {
-        self.insert_batch(EditKind::AddStep, position, new_steps, None)
+        self.insert_batch(EditKind::AddStep, position, new_steps, Vec::new())
     }
 
     /// Insert the selected steps of an imported recording and remember the
@@ -485,21 +485,39 @@ impl EditorDocument {
         recording: &ImportedRecording,
         selected: &[usize],
     ) -> Result<Vec<Uuid>, EditError> {
-        let steps: Vec<Step> = selected
-            .iter()
-            .filter_map(|&i| recording.steps.get(i))
-            .map(|s| s.step.clone())
-            .collect();
+        self.import_many(position, &[(recording, selected)])
+    }
+
+    /// Insert steps picked from several recordings, in the order given, as
+    /// one undoable import.
+    pub fn import_many(
+        &mut self,
+        position: usize,
+        selections: &[(&ImportedRecording, &[usize])],
+    ) -> Result<Vec<Uuid>, EditError> {
+        let mut steps = Vec::new();
+        let mut sources = Vec::new();
+        for (recording, selected) in selections {
+            let picked: Vec<Step> = selected
+                .iter()
+                .filter_map(|&i| recording.steps.get(i))
+                .map(|s| s.step.clone())
+                .collect();
+            if picked.is_empty() {
+                continue;
+            }
+            sources.push(SourceArchive {
+                label: recording.label.clone(),
+                digest: recording.source_digest.clone(),
+                imported_at: now_rfc3339(),
+                step_count: picked.len(),
+            });
+            steps.extend(picked);
+        }
         if steps.is_empty() {
             return Err(EditError::NoChange);
         }
-        let source = SourceArchive {
-            label: recording.label.clone(),
-            digest: recording.source_digest.clone(),
-            imported_at: now_rfc3339(),
-            step_count: steps.len(),
-        };
-        self.insert_batch(EditKind::Import, position, steps, Some(source))
+        self.insert_batch(EditKind::Import, position, steps, sources)
     }
 
     fn insert_batch(
@@ -507,7 +525,7 @@ impl EditorDocument {
         kind: EditKind,
         position: usize,
         new_steps: Vec<Step>,
-        source: Option<SourceArchive>,
+        sources: Vec<SourceArchive>,
     ) -> Result<Vec<Uuid>, EditError> {
         let len = self.steps.len();
         if position > len {
@@ -534,9 +552,7 @@ impl EditorDocument {
                 ids.push(id);
                 steps.insert(position + k, s);
             }
-            if let Some(src) = source {
-                meta.sources.push(src);
-            }
+            meta.sources.extend(sources);
             Ok(ids)
         })
     }
@@ -612,7 +628,21 @@ impl EditorDocument {
         Ok(kind)
     }
 
+    /// Forget the undo/redo history (after building a freshly opened guide).
+    pub fn clear_history(&mut self) {
+        self.undo.clear();
+        self.redo.clear();
+    }
+
     // ── Recovery ────────────────────────────────────────────────────
+
+    /// Whether the recovery copy is behind the current state.
+    pub fn needs_autosave(&self) -> bool {
+        match self.autosaved {
+            None => true,
+            Some((rev, dirty, _)) => rev != self.revision || dirty != self.is_dirty(),
+        }
+    }
 
     /// Write the crash-recovery copy now.
     pub fn write_recovery(&mut self) -> io::Result<()> {
@@ -625,7 +655,7 @@ impl EditorDocument {
         };
         let json = serde_json::to_vec(&data).map_err(io::Error::other)?;
         let path = self.workspace.dir().join(RECOVERY_FILE);
-        project::write_atomically(&path, |mut f| {
+        project::write_private_atomically(&path, |mut f| {
             io::Write::write_all(&mut f, &json)?;
             Ok(f)
         })?;
@@ -636,12 +666,10 @@ impl EditorDocument {
     /// Write the recovery copy if the guide changed and `min_interval` has
     /// passed since the last one. Returns whether it wrote.
     pub fn autosave(&mut self, min_interval: Duration) -> bool {
-        let due = match self.autosaved {
-            None => true,
-            Some((rev, dirty, at)) => {
-                (rev != self.revision || dirty != self.is_dirty()) && at.elapsed() >= min_interval
-            }
-        };
+        let due = self.needs_autosave()
+            && self
+                .autosaved
+                .is_none_or(|(_, _, at)| at.elapsed() >= min_interval);
         due && self.write_recovery().is_ok()
     }
 

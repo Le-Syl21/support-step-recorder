@@ -39,6 +39,20 @@ pub enum Icon {
     Chat,
     /// Two arrows apart: enlarge.
     Expand,
+    /// Move a step up / down.
+    ArrowUp,
+    ArrowDown,
+    /// Undo / redo: a hooked arrow.
+    Undo,
+    Redo,
+    /// Open a file.
+    Folder,
+    /// Add a picture.
+    Image,
+    /// Edit text.
+    Pencil,
+    /// Import into the guide.
+    Import,
 }
 
 impl Icon {
@@ -265,6 +279,90 @@ impl Icon {
                         stroke,
                     ));
                 }
+            }
+            Icon::ArrowUp | Icon::ArrowDown => {
+                let d = if self == Icon::ArrowUp { -1.0 } else { 1.0 };
+                line(at(0.0, -0.34 * d), at(0.0, 0.34 * d));
+                painter.add(Shape::line(
+                    vec![at(-0.24, 0.12 * d), at(0.0, 0.36 * d), at(0.24, 0.12 * d)],
+                    stroke,
+                ));
+            }
+            Icon::Undo | Icon::Redo => {
+                let m = if self == Icon::Undo { 1.0 } else { -1.0 };
+                let n = 20;
+                let arc: Vec<Pos2> = (0..=n)
+                    .map(|i| {
+                        let a = -std::f32::consts::FRAC_PI_2
+                            + std::f32::consts::PI * i as f32 / n as f32;
+                        at(0.02 * m + a.cos() * 0.26 * m, 0.04 + a.sin() * 0.24)
+                    })
+                    .collect();
+                painter.add(Shape::line(arc, stroke));
+                line(at(0.02 * m, -0.20), at(-0.30 * m, -0.20));
+                painter.add(Shape::line(
+                    vec![
+                        at(-0.16 * m, -0.36),
+                        at(-0.32 * m, -0.20),
+                        at(-0.16 * m, -0.04),
+                    ],
+                    stroke,
+                ));
+                line(at(0.02 * m, 0.28), at(-0.20 * m, 0.28));
+            }
+            Icon::Folder => {
+                let pts = vec![
+                    at(-0.42, -0.30),
+                    at(-0.12, -0.30),
+                    at(-0.04, -0.20),
+                    at(0.42, -0.20),
+                    at(0.42, 0.34),
+                    at(-0.42, 0.34),
+                ];
+                painter.add(Shape::closed_line(pts, stroke));
+                line(at(-0.42, -0.08), at(0.42, -0.08));
+            }
+            Icon::Image => {
+                frame(at(-0.42, -0.32), at(0.42, 0.32), s * 0.06);
+                painter.add(Shape::line(
+                    vec![
+                        at(-0.34, 0.24),
+                        at(-0.10, -0.02),
+                        at(0.06, 0.14),
+                        at(0.16, 0.04),
+                        at(0.34, 0.24),
+                    ],
+                    stroke,
+                ));
+                painter.circle_filled(at(0.18, -0.14), s * 0.06, color);
+            }
+            Icon::Pencil => {
+                let body = vec![
+                    at(0.22, -0.38),
+                    at(0.38, -0.22),
+                    at(-0.18, 0.34),
+                    at(-0.38, 0.38),
+                    at(-0.34, 0.18),
+                ];
+                painter.add(Shape::closed_line(body, stroke));
+                line(at(0.10, -0.26), at(0.26, -0.10));
+            }
+            Icon::Import => {
+                line(at(0.0, -0.40), at(0.0, 0.10));
+                painter.add(Shape::line(
+                    vec![at(-0.18, -0.08), at(0.0, 0.10), at(0.18, -0.08)],
+                    stroke,
+                ));
+                painter.add(Shape::line(
+                    vec![
+                        at(-0.40, -0.10),
+                        at(-0.40, 0.38),
+                        at(0.40, 0.38),
+                        at(0.40, -0.10),
+                    ],
+                    stroke,
+                ));
+                line(at(-0.40, 0.20), at(0.40, 0.20));
             }
         }
     }

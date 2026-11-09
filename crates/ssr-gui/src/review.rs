@@ -1,6 +1,7 @@
-//! The steps of a session: the list with thumbnails on the left, the
-//! selected step on the right (its screenshot and its metadata). Shared by
-//! the recording (live, following the latest step) and review stages.
+//! The steps of a session or guide: the timeline with thumbnails on the
+//! left, the selected step's screenshot in the middle and, in the editor,
+//! its properties on the right (title, instructions, actions, metadata).
+//! Shared by the recording (live, read-only) and editor stages.
 
 use std::sync::Arc;
 
@@ -10,13 +11,14 @@ use egui::{
     Stroke, TextFormat, Vec2, WidgetInfo,
 };
 use ssr_core::{Action, Lang};
+use uuid::Uuid;
 
-use crate::app::{App, Stage};
+use crate::app::{App, Draft, Stage};
 use crate::icons::{self, Icon};
 use crate::steps::{self, Snapshot, StepRow};
 use crate::theme::{self, pal};
 use crate::viewer::Viewer;
-use crate::widgets;
+use crate::widgets::{self, Kind};
 
 const ROW_HEIGHT: f32 = 68.0;
 /// Thumbnail size in a list of normal width; narrower lists shrink it.
@@ -79,39 +81,138 @@ fn steps_list(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>, nav: bo
     // While recording and following the latest step, scroll to new ones.
     let follow_new = app.selected.is_none() && rows.len() != app.seen_rows;
     app.seen_rows = rows.len();
-    let current = app.selected.or_else(|| rows.last().map(|r| r.index));
+    let current = snap.current(app.selected).map(|i| rows[i].id);
+    let editable = snap.editable && app.can_edit();
 
     egui::ScrollArea::vertical()
         .auto_shrink([false, false])
         .show(ui, |ui| {
             ui.spacing_mut().item_spacing.y = 4.0;
+            let mut rects: Vec<(Uuid, Rect)> = Vec::with_capacity(rows.len());
             for row in rows {
-                let is_sel = current == Some(row.index);
+                let is_sel = current == Some(row.id);
                 let thumb = row
                     .screenshot
                     .as_deref()
                     .and_then(|name| app.textures.thumb(ui.ctx(), &snap.dir, name));
-                let resp = step_row(ui, row, is_sel, thumb.as_ref(), lang);
+                let dragged = app.dragging == Some(row.id);
+                let state = RowState {
+                    selected: is_sel,
+                    dragged,
+                    editable,
+                    guide: snap.editable,
+                };
+                let resp = step_row(ui, row, state, thumb.as_ref(), lang);
                 if resp.clicked() {
-                    app.selected = Some(row.index);
+                    app.select(row.id);
+                }
+                if editable && resp.drag_started() {
+                    app.select(row.id);
+                    app.dragging = Some(row.id);
                 }
                 if is_sel && (nav || follow_new) {
                     resp.scroll_to_me(Some(Align::Center));
                 }
+                rects.push((row.id, resp.rect));
+            }
+            if editable {
+                drag_and_drop(app, ui, &rects);
             }
         });
+}
+
+/// While a step is dragged: show where it would land, scroll near the
+/// edges, and move it on release.
+fn drag_and_drop(app: &mut App, ui: &mut egui::Ui, rects: &[(Uuid, Rect)]) {
+    let Some(dragged) = app.dragging else { return };
+    let p = pal(ui.ctx());
+    let (pointer, released) = ui.input(|i| {
+        (
+            i.pointer.interact_pos(),
+            i.pointer.any_released() || !i.pointer.any_down(),
+        )
+    });
+    let Some(from) = rects.iter().position(|(id, _)| *id == dragged) else {
+        app.dragging = None;
+        return;
+    };
+    let Some(pos) = pointer else {
+        if released {
+            app.dragging = None;
+        }
+        return;
+    };
+    // Insertion slot: before the first row whose middle is below the pointer.
+    let slot = rects
+        .iter()
+        .position(|(_, r)| pos.y < r.center().y)
+        .unwrap_or(rects.len());
+    let y = match rects.get(slot) {
+        Some((_, r)) => r.top() - 2.0,
+        None => rects.last().map(|(_, r)| r.bottom() + 2.0).unwrap_or(0.0),
+    };
+    let (left, right) = rects
+        .first()
+        .map(|(_, r)| (r.left(), r.right()))
+        .unwrap_or_default();
+    let noop = slot == from || slot == from + 1;
+    if !noop {
+        ui.painter().line_segment(
+            [egui::pos2(left + 4.0, y), egui::pos2(right - 4.0, y)],
+            Stroke::new(3.0, p.accent),
+        );
+    }
+    ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+    // Scroll when dragging near the top or bottom of the list.
+    let clip = ui.clip_rect();
+    if pos.y < clip.top() + 24.0 {
+        ui.scroll_with_delta(Vec2::new(0.0, 8.0));
+        ui.ctx().request_repaint();
+    } else if pos.y > clip.bottom() - 24.0 {
+        ui.scroll_with_delta(Vec2::new(0.0, -8.0));
+        ui.ctx().request_repaint();
+    }
+    if released {
+        app.dragging = None;
+        if !noop {
+            let to = if slot > from { slot - 1 } else { slot };
+            app.edit(|d| d.move_step(dragged, to));
+        }
+    }
+}
+
+/// How a row is drawn.
+#[derive(Clone, Copy)]
+struct RowState {
+    selected: bool,
+    dragged: bool,
+    /// The row can be dragged (an editable guide, nothing running).
+    editable: bool,
+    /// A guide rather than a live recording: no "time since start".
+    guide: bool,
 }
 
 fn step_row(
     ui: &mut egui::Ui,
     row: &StepRow,
-    selected: bool,
+    state: RowState,
     thumb: Option<&egui::TextureHandle>,
     lang: Lang,
 ) -> egui::Response {
+    let RowState {
+        selected,
+        dragged,
+        editable,
+        guide,
+    } = state;
     let p = pal(ui.ctx());
     let width = ui.available_width();
-    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, ROW_HEIGHT), Sense::click());
+    let sense = if editable {
+        Sense::click_and_drag()
+    } else {
+        Sense::click()
+    };
+    let (rect, resp) = ui.allocate_exact_size(Vec2::new(width, ROW_HEIGHT), sense);
     let title = format!("{}. {}", row.index, row.short_title(lang));
     resp.widget_info(|| WidgetInfo::selected(Role::ListItem, true, selected, &title));
     if !ui.is_rect_visible(rect) {
@@ -120,6 +221,14 @@ fn step_row(
 
     let painter = ui.painter();
     let radius = CornerRadius::same(theme::RADIUS_SMALL);
+    if dragged {
+        painter.rect_stroke(
+            rect,
+            radius,
+            Stroke::new(1.5, p.accent),
+            egui::StrokeKind::Inside,
+        );
+    }
     if selected {
         painter.rect_filled(rect, radius, p.tint(p.accent, 40));
         let bar = Rect::from_min_size(
@@ -151,7 +260,9 @@ fn step_row(
             );
         }
         None => {
-            let icon = if row.is_click() {
+            let icon = if row.is_manual() {
+                Icon::Pencil
+            } else if row.is_click() {
                 Icon::Camera
             } else {
                 Icon::Keyboard
@@ -186,7 +297,8 @@ fn step_row(
         .x;
     // The title wins over the offset when the list is narrow (the offset is
     // also in the step's details).
-    let show_offset = title_w + 6.0 + offset_g.size().x <= text_w;
+    // A guide may mix recordings: a "time since start" would be misleading.
+    let show_offset = !guide && title_w + 6.0 + offset_g.size().x <= text_w;
     let title_g = one_line(ui, &title, title_font, p.text, text_w);
     let top = rect.top() + 9.0;
     painter.galley(egui::pos2(x, top), title_g, p.text);
@@ -198,6 +310,14 @@ fn step_row(
         );
     }
     let second = match &row.action {
+        _ if row.is_manual() => {
+            if row.notes.is_empty() {
+                lang.pick("Étape rédigée", "Written step").into()
+            } else {
+                row.notes.lines().next().unwrap_or_default().to_string()
+            }
+        }
+        _ if row.custom_title().is_some() => row.auto_description(lang),
         Action::Text { content } => format!("\u{201c}{}\u{201d}", steps::shown_text(content)),
         Action::Click { .. } => row
             .target()
@@ -211,7 +331,12 @@ fn step_row(
         text_w,
     );
     painter.galley(egui::pos2(x, top + 20.0), second_g, p.text_muted);
-    if let (Action::Text { .. }, Some(target)) = (&row.action, row.target()) {
+    if let (Action::Text { .. }, false, false, Some(target)) = (
+        &row.action,
+        row.is_manual(),
+        row.custom_title().is_some(),
+        row.target(),
+    ) {
         let third = one_line(
             ui,
             &target,
@@ -222,7 +347,15 @@ fn step_row(
         painter.galley(egui::pos2(x, top + 36.0), third, p.text_faint);
     }
 
-    resp.on_hover_cursor(egui::CursorIcon::PointingHand)
+    if editable {
+        resp.on_hover_cursor(egui::CursorIcon::Grab)
+            .on_hover_text(lang.pick(
+                "Glisser pour déplacer · Alt+↑/↓",
+                "Drag to move · Alt+Up/Down",
+            ))
+    } else {
+        resp.on_hover_cursor(egui::CursorIcon::PointingHand)
+    }
 }
 
 /// `text` laid out on one line, cut with an ellipsis to fit `width`.
@@ -256,22 +389,20 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
         empty_state(app, ui);
         return;
     };
-    let current = app
-        .selected
-        .and_then(|sel| snap.position(sel))
-        .unwrap_or(snap.rows.len() - 1);
+    let current = snap.current(app.selected).unwrap_or(0);
     let row = &snap.rows[current];
+    let editable = snap.editable;
 
-    widgets::eyebrow(
-        ui,
-        &format!(
-            "{} {} / {} · {}",
-            lang.pick("Étape", "Step"),
-            current + 1,
-            snap.rows.len(),
-            steps::offset(row.elapsed_ms, lang)
-        ),
+    let mut eyebrow = format!(
+        "{} {} / {}",
+        lang.pick("Étape", "Step"),
+        current + 1,
+        snap.rows.len()
     );
+    if !editable {
+        eyebrow.push_str(&format!(" · {}", steps::offset(row.elapsed_ms, lang)));
+    }
+    widgets::eyebrow(ui, &eyebrow);
     ui.add(
         egui::Label::new(
             RichText::new(row.description(lang))
@@ -283,11 +414,16 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
     );
     ui.add_space(6.0);
 
-    let side_meta = ui.available_width() >= SIDE_META_MIN_WIDTH;
+    if !row.notes.is_empty() && !editable {
+        ui.add(egui::Label::new(RichText::new(&row.notes).color(p.text_muted)).wrap());
+        ui.add_space(4.0);
+    }
+
+    let side_meta = ui.available_width() >= if editable { 640.0 } else { SIDE_META_MIN_WIDTH };
     if side_meta {
         egui::Panel::right("step_meta")
             .resizable(false)
-            .exact_size(270.0)
+            .exact_size(if editable { 300.0 } else { 270.0 })
             .frame(egui::Frame::new().inner_margin(Margin {
                 left: 14,
                 ..Default::default()
@@ -295,7 +431,13 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
             .show(ui, |ui| {
                 egui::ScrollArea::vertical()
                     .auto_shrink([false, false])
-                    .show(ui, |ui| metadata(ui, row, lang, None));
+                    .show(ui, |ui| {
+                        if editable {
+                            properties(app, ui, row);
+                            ui.separator();
+                        }
+                        metadata(ui, row, lang, None);
+                    });
             });
     } else {
         // Narrow: the screenshot keeps the room, the details fold away (and
@@ -306,16 +448,24 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
             .show(ui, |ui| {
                 ui.set_width(ui.available_width());
                 egui::CollapsingHeader::new(
-                    RichText::new(lang.pick("Détails de l'étape", "Step details"))
-                        .size(theme::SIZE_SMALL)
-                        .color(p.text_muted),
+                    RichText::new(if editable {
+                        lang.pick("Modifier l'étape", "Edit step")
+                    } else {
+                        lang.pick("Détails de l'étape", "Step details")
+                    })
+                    .size(theme::SIZE_SMALL)
+                    .color(p.text_muted),
                 )
                 .id_salt("step_details")
-                .default_open(false)
+                .default_open(editable)
                 .show(ui, |ui| {
                     egui::ScrollArea::vertical()
                         .max_height(details_max)
                         .show(ui, |ui| {
+                            if editable {
+                                properties(app, ui, row);
+                                ui.separator();
+                            }
                             let columns = if ui.available_width() >= 520.0 { 2 } else { 1 };
                             metadata(ui, row, lang, Some(columns));
                         });
@@ -351,20 +501,235 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
             },
             None => {
                 let typed = match &row.action {
-                    Action::Text { content } => Some(content.as_str()),
-                    Action::Click { .. } => None,
+                    Action::Text { content } if !row.is_manual() => Some(content.as_str()),
+                    _ => None,
                 };
-                placeholder(
-                    ui,
-                    Icon::Keyboard,
-                    lang.pick(
-                        "Étape de saisie clavier : pas de capture associée.",
-                        "Keyboard input step: no screenshot.",
-                    ),
-                    typed,
-                );
+                let (icon, msg) = if row.is_manual() {
+                    (
+                        Icon::Pencil,
+                        lang.pick(
+                            "Étape rédigée, sans capture. « Image… » pour en ajouter une.",
+                            "Written step, no screenshot. Use “Image…” to add one.",
+                        ),
+                    )
+                } else if typed.is_some() {
+                    (
+                        Icon::Keyboard,
+                        lang.pick(
+                            "Étape de saisie clavier : pas de capture associée.",
+                            "Keyboard input step: no screenshot.",
+                        ),
+                    )
+                } else {
+                    (
+                        Icon::Camera,
+                        lang.pick(
+                            "Pas de capture pour cette étape.",
+                            "No screenshot for this step.",
+                        ),
+                    )
+                };
+                placeholder(ui, icon, msg, typed);
             }
         });
+}
+
+/// The editable side of a step: its title, instructions and actions. The
+/// text is typed into a draft and written back on Enter / focus loss, so a
+/// redraw never overwrites it; Escape drops the change.
+fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
+    let lang = app.lang;
+    let p = pal(ui.ctx());
+    let enabled = app.can_edit();
+    if app.draft.as_ref().is_some_and(|d| d.id != row.id) {
+        app.commit_draft();
+    }
+    let draft = app.draft.get_or_insert_with(|| Draft {
+        id: row.id,
+        title: row.title_override.clone().unwrap_or_default(),
+        notes: row.notes.clone(),
+    });
+    let auto = row.auto_description(lang);
+    let escape = ui.input(|i| i.key_pressed(egui::Key::Escape));
+    let mut commit = false;
+    let mut revert_title = false;
+    let mut revert_notes = false;
+
+    ui.add_enabled_ui(enabled, |ui| {
+        widgets::eyebrow(ui, lang.pick("Titre de l'étape", "Step title"));
+        let r = ui.add(
+            egui::TextEdit::singleline(&mut draft.title)
+                .hint_text(&auto)
+                .desired_width(f32::INFINITY),
+        );
+        if r.lost_focus() {
+            if escape {
+                revert_title = true;
+            } else {
+                commit = true;
+            }
+        }
+        ui.horizontal(|ui| {
+            let (txt, col) = if row.custom_title().is_some() {
+                (
+                    lang.pick("Titre personnalisé", "Custom title"),
+                    p.accent_text,
+                )
+            } else {
+                (
+                    lang.pick("Titre automatique", "Automatic title"),
+                    p.text_faint,
+                )
+            };
+            ui.label(RichText::new(txt).size(theme::SIZE_SMALL).color(col));
+            if row.custom_title().is_some()
+                && ui
+                    .small_button(lang.pick("Rétablir l'automatique", "Restore automatic"))
+                    .clicked()
+            {
+                draft.title.clear();
+                commit = true;
+            }
+        });
+        ui.add_space(4.0);
+        widgets::eyebrow(ui, lang.pick("Consigne détaillée", "Instructions"));
+        let r = ui.add(
+            egui::TextEdit::multiline(&mut draft.notes)
+                .hint_text(lang.pick(
+                    "Expliquez ce qu'il faut faire à cette étape…",
+                    "Explain what to do at this step…",
+                ))
+                .desired_rows(4)
+                .desired_width(f32::INFINITY),
+        );
+        if r.lost_focus() {
+            if escape {
+                revert_notes = true;
+            } else {
+                commit = true;
+            }
+        }
+    });
+    if revert_title {
+        draft.title = row.title_override.clone().unwrap_or_default();
+    }
+    if revert_notes {
+        draft.notes = row.notes.clone();
+    }
+    if commit {
+        app.commit_draft();
+    }
+
+    ui.add_space(6.0);
+    let position = app.snapshot.as_ref().and_then(|s| s.position(row.id));
+    let count = app.snapshot.as_ref().map(|s| s.rows.len()).unwrap_or(0);
+    let mut act = 0;
+    ui.add_enabled_ui(enabled, |ui| {
+        ui.horizontal_wrapped(|ui| {
+            ui.add_enabled_ui(position.is_some_and(|p| p > 0), |ui| {
+                if widgets::icon_button(
+                    ui,
+                    Icon::ArrowUp,
+                    lang.pick("Monter (Alt+↑)", "Move up (Alt+Up)"),
+                )
+                .clicked()
+                {
+                    act = 1;
+                }
+            });
+            ui.add_enabled_ui(position.is_some_and(|p| p + 1 < count), |ui| {
+                if widgets::icon_button(
+                    ui,
+                    Icon::ArrowDown,
+                    lang.pick("Descendre (Alt+↓)", "Move down (Alt+Down)"),
+                )
+                .clicked()
+                {
+                    act = 2;
+                }
+            });
+            if widgets::button(
+                ui,
+                Kind::Ghost,
+                Some(Icon::Trash),
+                lang.pick("Supprimer l'étape", "Delete step"),
+            )
+            .on_hover_text(lang.pick(
+                "Retire l'étape du guide (Suppr ; Ctrl+Z pour annuler)",
+                "Removes the step from the guide (Delete; Ctrl+Z to undo)",
+            ))
+            .clicked()
+            {
+                act = 3;
+            }
+        });
+        ui.horizontal_wrapped(|ui| {
+            let label = if row.screenshot.is_some() {
+                lang.pick("Remplacer la capture…", "Replace screenshot…")
+            } else {
+                lang.pick("Ajouter une capture…", "Add screenshot…")
+            };
+            if widgets::button(ui, Kind::Secondary, Some(Icon::Image), label).clicked() {
+                act = 4;
+            }
+            if row.screenshot.is_some()
+                && widgets::button(
+                    ui,
+                    Kind::Ghost,
+                    Some(Icon::Minus),
+                    lang.pick("Retirer la capture", "Remove screenshot"),
+                )
+                .on_hover_text(lang.pick(
+                    "Garde l'étape et son texte ; seule l'image est retirée du guide.",
+                    "Keeps the step and its text; only the image leaves the guide.",
+                ))
+                .clicked()
+            {
+                act = 5;
+            }
+            let typed = matches!(&row.action, Action::Text { content }
+                if !content.is_empty() && content != ssr_core::editor::REDACTED);
+            if typed
+                && !row.is_manual()
+                && widgets::button(
+                    ui,
+                    Kind::Ghost,
+                    Some(Icon::Keyboard),
+                    lang.pick("Masquer le texte saisi", "Redact typed text"),
+                )
+                .on_hover_text(lang.pick(
+                    "Remplace le texte tapé (mot de passe…) par •••, dans le guide et l'export.",
+                    "Replaces the typed text (a password…) with •••, in the guide and the export.",
+                ))
+                .clicked()
+            {
+                act = 6;
+            }
+        });
+    });
+    let id = row.id;
+    match act {
+        1 => {
+            app.select(id);
+            app.move_selected(-1);
+        }
+        2 => {
+            app.select(id);
+            app.move_selected(1);
+        }
+        3 => app.delete_step(id),
+        4 => {
+            app.select(id);
+            app.add_image();
+        }
+        5 => {
+            app.edit(|d| d.detach_screenshot(id));
+        }
+        6 => {
+            app.edit(|d| d.redact_text(id));
+        }
+        _ => {}
+    }
 }
 
 /// Before the first step: what to do next.
@@ -385,8 +750,8 @@ fn empty_state(app: &App, ui: &mut egui::Ui) {
             ui,
             Icon::Mouse,
             lang.pick(
-                "Aucune étape n'a été enregistrée.",
-                "No steps were recorded.",
+                "Ce guide est vide. Importez des étapes d'un enregistrement, ajoutez une image ou une étape rédigée.",
+                "This guide is empty. Import steps from a recording, add an image or a written step.",
             ),
             None,
         );
@@ -427,11 +792,34 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
         lang.pick("Heure", "Time"),
         steps::human_date(row.timestamp_ms, lang),
     ));
-    items.push((
-        Icon::Clock,
-        lang.pick("Depuis le début", "Since start"),
-        steps::offset(row.elapsed_ms, lang),
-    ));
+    if !row.is_manual() {
+        items.push((
+            Icon::Clock,
+            if row.source.is_some() {
+                lang.pick("Dans son enregistrement", "In its recording")
+            } else {
+                lang.pick("Depuis le début", "Since start")
+            },
+            steps::offset(row.elapsed_ms, lang),
+        ));
+    }
+    if row.is_manual() {
+        items[0].1 = lang.pick("Créée le", "Created");
+        items.push((
+            Icon::Pencil,
+            lang.pick("Type", "Kind"),
+            lang.pick("Étape rédigée dans l'éditeur", "Step written in the editor")
+                .into(),
+        ));
+        if let Some(name) = &row.screenshot {
+            items.push((
+                Icon::Camera,
+                lang.pick("Capture", "Screenshot"),
+                short_asset(name),
+            ));
+        }
+        return show_items(ui, &items, grid);
+    }
     match &row.action {
         Action::Click {
             button,
@@ -512,17 +900,43 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
             format!("{} × {} @ {}, {}", w.width, w.height, w.x, w.y),
         ));
     }
+    if let Some(src) = &row.source {
+        items.push((
+            Icon::Report,
+            lang.pick("Source", "Source"),
+            format!(
+                "{} · {} {}",
+                src.source_label,
+                lang.pick("étape", "step"),
+                src.original_index
+            ),
+        ));
+    }
     if let Some(name) = &row.screenshot {
         items.push((
             Icon::Camera,
             lang.pick("Capture", "Screenshot"),
-            name.clone(),
+            short_asset(name),
         ));
     }
 
+    show_items(ui, &items, grid);
+}
+
+/// A screenshot reference, shortened for display.
+fn short_asset(name: &str) -> String {
+    let base = name.rsplit('/').next().unwrap_or(name);
+    if base.chars().count() > 20 {
+        format!("{}…", base.chars().take(16).collect::<String>())
+    } else {
+        base.to_string()
+    }
+}
+
+fn show_items(ui: &mut egui::Ui, items: &[(Icon, &str, String)], grid: Option<usize>) {
     let p = pal(ui.ctx());
     let Some(columns) = grid else {
-        for (icon, label, value) in &items {
+        for (icon, label, value) in items {
             ui.horizontal(|ui| {
                 ui.spacing_mut().item_spacing.x = 6.0;
                 icons::icon(ui, *icon, 13.0, p.text_faint);

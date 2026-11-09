@@ -1,10 +1,10 @@
 //! The start screen and the bands above the steps: the live recording
-//! banner and the review header with the save actions.
+//! banner and the editor header with the project and export actions.
 
 use eframe::egui;
 use egui::{Margin, RichText, Stroke};
 
-use crate::app::{App, Status};
+use crate::app::{App, Intent, Status};
 use crate::icons::{self, Icon};
 use crate::steps;
 use crate::theme::{self, pal};
@@ -27,6 +27,7 @@ pub fn idle(app: &mut App, root: &mut egui::Ui) {
                         ui.set_width(ui.available_width());
                         // The card reads left-aligned inside the centred column.
                         ui.with_layout(egui::Layout::top_down(egui::Align::Min), |ui| {
+                        recovery(app, ui);
                         widgets::eyebrow(ui, lang.pick("Nouvel enregistrement", "New recording"));
                         ui.label(
                             RichText::new(lang.pick(
@@ -51,9 +52,13 @@ pub fn idle(app: &mut App, root: &mut egui::Ui) {
                             "Le texte tapé entre deux clics est enregistré comme une étape.",
                             "Text typed between two clicks is recorded as a step.",
                         ));
+                        feature(ui, Icon::Pencil, lang.pick(
+                            "À l'arrêt, vous arrivez dans l'éditeur : renommez, décrivez, réordonnez ou supprimez les étapes, et combinez plusieurs enregistrements.",
+                            "When you stop, you land in the editor: rename, describe, reorder or delete steps, and combine several recordings.",
+                        ));
                         feature(ui, Icon::Report, lang.pick(
-                            "À l'arrêt, vous relisez les étapes puis enregistrez un ZIP avec un rapport HTML à envoyer.",
-                            "When you stop, you review the steps and save a ZIP with an HTML report to send.",
+                            "Enregistrez le projet (.ssrproj) pour le reprendre plus tard, puis exportez un ZIP avec un rapport HTML à envoyer.",
+                            "Save the project (.ssrproj) to pick it up later, then export a ZIP with an HTML report to send.",
                         ));
 
                         ui.add_space(18.0);
@@ -66,24 +71,56 @@ pub fn idle(app: &mut App, root: &mut egui::Ui) {
                             )
                             .clicked()
                             {
-                                app.start();
+                                app.request(Intent::NewRecording);
+                            }
+                        });
+                        ui.add_space(8.0);
+                        ui.horizontal_wrapped(|ui| {
+                            if widgets::button(
+                                ui,
+                                Kind::Secondary,
+                                Some(Icon::Folder),
+                                lang.pick("Ouvrir un projet…", "Open project…"),
+                            )
+                            .on_hover_text(lang.pick(
+                                "Reprendre un guide enregistré (.ssrproj).",
+                                "Continue a saved guide (.ssrproj).",
+                            ))
+                            .clicked()
+                            {
+                                app.request(Intent::OpenProject);
+                            }
+                            if widgets::button(
+                                ui,
+                                Kind::Secondary,
+                                Some(Icon::Import),
+                                lang.pick("Ouvrir un enregistrement…", "Open recording…"),
+                            )
+                            .on_hover_text(lang.pick(
+                                "Éditer un ZIP exporté plus tôt ; l'archive d'origine n'est pas modifiée.",
+                                "Edit a ZIP exported earlier; the original archive is not modified.",
+                            ))
+                            .clicked()
+                            {
+                                app.request(Intent::OpenRecording);
                             }
                         });
                         ui.add_space(10.0);
                         ui.label(
                             RichText::new(lang.pick(
-                                "Les captures restent sur cet ordinateur, dans un dossier temporaire, jusqu'à ce que vous enregistriez le rapport. Sous Wayland, le bureau vous demandera quelle fenêtre ou quel écran partager.",
-                                "Screenshots stay on this computer, in a temporary folder, until you save the report. On Wayland, your desktop will ask which window or screen to share.",
+                                "Les captures restent sur cet ordinateur, dans un dossier privé, jusqu'à ce que vous enregistriez le projet ou exportiez le guide. Sous Wayland, le bureau vous demandera quelle fenêtre ou quel écran partager.",
+                                "Screenshots stay on this computer, in a private folder, until you save the project or export the guide. On Wayland, your desktop will ask which window or screen to share.",
                             ))
                             .size(theme::SIZE_SMALL)
                             .color(p.text_faint),
                         );
 
-                        if let Status::StartFailed(err) = &app.status {
+
+                        if let Status::StartFailed(err) | Status::OpenFailed(err) = &app.status {
                             ui.add_space(12.0);
                             banner(ui, Icon::Warning, p.record, &format!(
                                 "{} {err}",
-                                lang.pick("Impossible de démarrer :", "Could not start:")
+                                lang.pick("Impossible :", "Could not proceed:")
                             ));
                         }
                         });
@@ -91,6 +128,71 @@ pub fn idle(app: &mut App, root: &mut egui::Ui) {
             });
         });
     });
+}
+
+/// Guides left unsaved by a crash: recover or discard each.
+fn recovery(app: &mut App, ui: &mut egui::Ui) {
+    if app.recoverable.is_empty() {
+        return;
+    }
+    let lang = app.lang;
+    let p = pal(ui.ctx());
+    let mut action = None;
+    egui::Frame::new()
+        .fill(p.tint(p.warning, 24))
+        .stroke(Stroke::new(1.0, p.tint(p.warning, 80)))
+        .corner_radius(egui::CornerRadius::same(theme::RADIUS_SMALL))
+        .inner_margin(Margin::symmetric(12, 10))
+        .show(ui, |ui| {
+            ui.set_width(ui.available_width());
+            ui.horizontal(|ui| {
+                icons::icon(ui, Icon::Warning, 16.0, p.warning);
+                ui.label(
+                    RichText::new(
+                        lang.pick("Travail non enregistré retrouvé", "Unsaved work found"),
+                    )
+                    .strong()
+                    .color(p.text),
+                );
+            });
+            for r in &app.recoverable {
+                ui.horizontal_wrapped(|ui| {
+                    let when = chrono::DateTime::parse_from_rfc3339(&r.written_at)
+                        .map(|d| d.format("%Y-%m-%d %H:%M").to_string())
+                        .unwrap_or_default();
+                    ui.label(
+                        RichText::new(format!(
+                            "« {} » · {} {} · {when}",
+                            r.title,
+                            r.step_count,
+                            lang.pick("étape(s)", "step(s)")
+                        ))
+                        .color(p.text),
+                    );
+                    if widgets::button(ui, Kind::Primary, None, lang.pick("Récupérer", "Recover"))
+                        .clicked()
+                    {
+                        action = Some((true, r.dir.clone()));
+                    }
+                    if widgets::button(
+                        ui,
+                        Kind::Ghost,
+                        Some(Icon::Trash),
+                        lang.pick("Supprimer", "Discard"),
+                    )
+                    .clicked()
+                    {
+                        action = Some((false, r.dir.clone()));
+                    }
+                });
+            }
+        });
+    ui.add_space(14.0);
+    match action {
+        Some((true, dir)) => app.request(Intent::Recover(dir)),
+        Some((false, dir)) => app.discard_recoverable(&dir),
+        None => {}
+    }
 }
 
 fn feature(ui: &mut egui::Ui, icon: Icon, text: &str) {
@@ -212,25 +314,41 @@ fn stat(ui: &mut egui::Ui, icon: Icon, value: &str, caption: &str) {
     ui.add_space(6.0);
 }
 
-/// Review: the session summary, whether it is saved, and the actions.
+/// Editor: the guide title, its saved / exported state, and the actions.
 pub fn review_header(app: &mut App, root: &mut egui::Ui) {
     let lang = app.lang;
     let p = pal(root.ctx());
-    let (count, duration, started) = app
-        .snapshot
-        .as_ref()
-        .map(|s| {
-            let last = s.rows.last().map(|r| r.elapsed_ms).unwrap_or(0);
-            let started = s.started_at.format(match lang {
-                ssr_core::Lang::Fr => "%d/%m/%Y %H:%M",
-                ssr_core::Lang::En => "%Y-%m-%d %H:%M",
-            });
-            (s.rows.len(), (last / 1000) as u64, started.to_string())
-        })
-        .unwrap_or_default();
-    let busy = app.is_exporting();
-    let saved = app.saved_to.is_some();
-    let (mut save, mut new) = (false, false);
+    let Some(doc) = &app.doc else { return };
+    let title = doc.metadata().title.clone();
+    let count = doc.steps().len();
+    let undo = doc.can_undo();
+    let redo = doc.can_redo();
+    let editable = app.can_edit();
+    // French labels are longer: fold the secondary actions into "More…"
+    // sooner so Undo/Redo always stay visible.
+    let compact = root.available_width()
+        < match lang {
+            ssr_core::Lang::Fr => 1320.0,
+            ssr_core::Lang::En => 1180.0,
+        };
+
+    #[derive(Clone, Copy, PartialEq)]
+    enum Act {
+        Undo,
+        Redo,
+        Import,
+        AddImage,
+        AddStep,
+        Save,
+        SaveAs,
+        Export,
+        Info,
+        New,
+        OpenProject,
+        OpenRecording,
+        Close,
+    }
+    let act: std::cell::Cell<Option<Act>> = std::cell::Cell::new(None);
 
     egui::Panel::top("stage_band")
         .frame(
@@ -245,107 +363,277 @@ pub fn review_header(app: &mut App, root: &mut egui::Ui) {
                 |ui| {
                     ui.vertical(|ui| {
                         ui.spacing_mut().item_spacing.y = 2.0;
-                        widgets::eyebrow(
-                            ui,
-                            &format!("{} · {started}", lang.pick("Session", "Session")),
-                        );
+                        let steps_word = if count == 1 {
+                            lang.pick("étape", "step")
+                        } else {
+                            lang.pick("étapes", "steps")
+                        };
                         ui.horizontal(|ui| {
-                            let steps_word = if count == 1 {
-                                lang.pick("étape", "step")
-                            } else {
-                                lang.pick("étapes", "steps")
-                            };
-                            ui.label(
-                                RichText::new(format!(
-                                    "{count} {steps_word} · {}",
-                                    steps::clock(duration)
-                                ))
-                                .size(17.0)
-                                .strong()
-                                .color(p.text),
+                            widgets::eyebrow(
+                                ui,
+                                &format!(
+                                    "{} · {count} {steps_word}",
+                                    lang.pick("Guide", "Guide")
+                                ),
                             );
                             save_state(app, ui);
+                        });
+                        ui.horizontal(|ui| {
+                            let r = ui.add(
+                                egui::Label::new(
+                                    RichText::new(&title).size(17.0).strong().color(p.text),
+                                )
+                                .truncate()
+                                .sense(egui::Sense::click()),
+                            );
+                            if editable
+                                && (r
+                                    .on_hover_text(lang.pick(
+                                        "Modifier le titre et l'introduction",
+                                        "Edit the title and introduction",
+                                    ))
+                                    .clicked()
+                                    || widgets::icon_button(
+                                        ui,
+                                        Icon::Pencil,
+                                        lang.pick("Détails du guide…", "Guide details…"),
+                                    )
+                                    .clicked())
+                            {
+                                act.set(Some(Act::Info));
+                            }
                         });
                     });
                 },
                 |ui| {
-                    ui.add_enabled_ui(!busy, |ui| {
-                        let (kind, label) = if saved {
-                            (
+                    ui.add_enabled_ui(!app.is_busy(), |ui| {
+                        // Laid out right to left.
+                        ui.menu_button(lang.pick("Plus…", "More…"), |ui| {
+                            let item = |ui: &mut egui::Ui, a: Act, label: &str| {
+                                if ui.button(label).clicked() {
+                                    act.set(Some(a));
+                                    ui.close();
+                                }
+                            };
+                            item(ui, Act::SaveAs, lang.pick("Enregistrer le projet sous…", "Save project as…"));
+                            item(ui, Act::Info, lang.pick("Détails du guide…", "Guide details…"));
+                            if compact {
+                                ui.separator();
+                                item(ui, Act::Import, lang.pick("Importer des étapes…", "Import steps…"));
+                                item(ui, Act::AddImage, lang.pick("Ajouter une image…", "Add image…"));
+                                item(ui, Act::AddStep, lang.pick("Ajouter une étape rédigée", "Add written step"));
+                                item(ui, Act::New, lang.pick("Nouvel enregistrement", "New recording"));
+                            }
+                            ui.separator();
+                            item(ui, Act::OpenProject, lang.pick("Ouvrir un projet…", "Open project…"));
+                            item(ui, Act::OpenRecording, lang.pick("Ouvrir un enregistrement…", "Open recording…"));
+                            item(ui, Act::Close, lang.pick("Fermer le guide", "Close guide"));
+                        })
+                        .response
+                        .on_hover_text(lang.pick("Plus d'actions", "More actions"));
+                        if !compact
+                            && widgets::button(
+                                ui,
                                 Kind::Secondary,
-                                lang.pick("Enregistrer une copie…", "Save a copy…"),
+                                Some(Icon::Record),
+                                lang.pick("Nouvel enregistrement", "New recording"),
                             )
-                        } else {
-                            (
-                                Kind::Primary,
-                                lang.pick("Enregistrer le rapport…", "Save report…"),
-                            )
-                        };
-                        save = widgets::button(ui, kind, Some(Icon::Save), label).clicked();
-                        new = widgets::button(
+                            .clicked()
+                        {
+                            act.set(Some(Act::New));
+                        }
+                        if widgets::button(
                             ui,
                             Kind::Secondary,
-                            Some(Icon::Record),
-                            lang.pick("Nouvel enregistrement", "New recording"),
+                            Some(Icon::Report),
+                            lang.pick("Exporter le guide…", "Export guide…"),
                         )
-                        .clicked();
+                        .on_hover_text(lang.pick(
+                            "ZIP à partager : rapport HTML, steps.json et captures (Ctrl+E). Ne remplace pas l'enregistrement du projet.",
+                            "ZIP to share: HTML report, steps.json and screenshots (Ctrl+E). Does not replace saving the project.",
+                        ))
+                        .clicked()
+                        {
+                            act.set(Some(Act::Export));
+                        }
+                        let kind = if app.is_dirty() { Kind::Primary } else { Kind::Secondary };
+                        if widgets::button(
+                            ui,
+                            kind,
+                            Some(Icon::Save),
+                            lang.pick("Enregistrer le projet", "Save project"),
+                        )
+                        .on_hover_text(lang.pick(
+                            "Projet éditable .ssrproj, pour reprendre plus tard (Ctrl+S).",
+                            "Editable .ssrproj project, to continue later (Ctrl+S).",
+                        ))
+                        .clicked()
+                        {
+                            act.set(Some(Act::Save));
+                        }
+                        if !compact {
+                            ui.add_enabled_ui(editable, |ui| {
+                                if widgets::button(
+                                    ui,
+                                    Kind::Ghost,
+                                    Some(Icon::Image),
+                                    lang.pick("Image…", "Image…"),
+                                )
+                                .on_hover_text(lang.pick(
+                                    "Ajouter une image PNG, JPEG ou WebP",
+                                    "Add a PNG, JPEG or WebP image",
+                                ))
+                                .clicked()
+                                {
+                                    act.set(Some(Act::AddImage));
+                                }
+                                if widgets::button(
+                                    ui,
+                                    Kind::Ghost,
+                                    Some(Icon::Plus),
+                                    lang.pick("Étape", "Step"),
+                                )
+                                .on_hover_text(lang.pick(
+                                    "Ajouter une étape rédigée après la sélection",
+                                    "Add a written step after the selection",
+                                ))
+                                .clicked()
+                                {
+                                    act.set(Some(Act::AddStep));
+                                }
+                                if widgets::button(
+                                    ui,
+                                    Kind::Ghost,
+                                    Some(Icon::Import),
+                                    lang.pick("Importer…", "Import…"),
+                                )
+                                .on_hover_text(lang.pick(
+                                    "Importer des étapes d'autres enregistrements (ZIP ou .ssrproj)",
+                                    "Import steps from other recordings (ZIP or .ssrproj)",
+                                ))
+                                .clicked()
+                                {
+                                    act.set(Some(Act::Import));
+                                }
+                            });
+                        }
+                        ui.add_space(6.0);
+                        let redo_tip = match redo {
+                            Some(k) => format!("{} {} (Ctrl+Shift+Z)", lang.pick("Rétablir :", "Redo:"), k.label(lang)),
+                            None => lang.pick("Rien à rétablir", "Nothing to redo").into(),
+                        };
+                        ui.add_enabled_ui(editable && redo.is_some(), |ui| {
+                            if widgets::icon_button(ui, Icon::Redo, &redo_tip).clicked() {
+                                act.set(Some(Act::Redo));
+                            }
+                        });
+                        let undo_tip = match undo {
+                            Some(k) => format!("{} {} (Ctrl+Z)", lang.pick("Annuler :", "Undo:"), k.label(lang)),
+                            None => lang.pick("Rien à annuler", "Nothing to undo").into(),
+                        };
+                        ui.add_enabled_ui(editable && undo.is_some(), |ui| {
+                            if widgets::icon_button(ui, Icon::Undo, &undo_tip).clicked() {
+                                act.set(Some(Act::Undo));
+                            }
+                        });
                     });
                 },
             );
         });
-    if save {
-        app.save();
-    }
-    if new {
-        app.request_start();
+
+    match act.get() {
+        Some(Act::Undo) => app.undo(),
+        Some(Act::Redo) => app.redo(),
+        Some(Act::Import) => app.import_recordings(),
+        Some(Act::AddImage) => app.add_image(),
+        Some(Act::AddStep) => app.add_written_step(),
+        Some(Act::Save) => {
+            app.commit_draft();
+            app.save_project(false);
+        }
+        Some(Act::SaveAs) => {
+            app.commit_draft();
+            app.save_project(true);
+        }
+        Some(Act::Export) => {
+            app.commit_draft();
+            app.export_guide();
+        }
+        Some(Act::Info) => {
+            if let Some(d) = &app.doc {
+                app.guide_info =
+                    Some((d.metadata().title.clone(), d.metadata().description.clone()));
+            }
+        }
+        Some(Act::New) => app.request(Intent::NewRecording),
+        Some(Act::OpenProject) => app.request(Intent::OpenProject),
+        Some(Act::OpenRecording) => app.request(Intent::OpenRecording),
+        Some(Act::Close) => app.request(Intent::CloseGuide),
+        None => {}
     }
 }
 
-/// The pill telling whether the session is saved, and where.
+/// The pill telling whether the guide is saved, and where; and whether the
+/// current state was exported.
 fn save_state(app: &App, ui: &mut egui::Ui) {
     let lang = app.lang;
     let p = pal(ui.ctx());
-    if app.is_exporting() {
-        widgets::pill(
-            ui,
-            None,
-            lang.pick("Enregistrement…", "Saving…"),
-            p.accent_text,
-        );
-    } else if let Some(path) = &app.saved_to {
-        widgets::pill(
-            ui,
-            Some(Icon::Check),
-            lang.pick("Enregistré", "Saved"),
-            p.success,
-        )
-        .on_hover_text(path.display().to_string());
-        ui.add(
-            egui::Label::new(
-                RichText::new(path.display().to_string())
-                    .size(theme::SIZE_SMALL)
-                    .color(p.text_faint),
+    let Some(doc) = &app.doc else { return };
+    if app.is_busy() {
+        widgets::pill(ui, None, lang.pick("En cours…", "Working…"), p.accent_text);
+        return;
+    }
+    match (doc.is_dirty(), doc.project_path()) {
+        (false, Some(path)) => {
+            widgets::pill(
+                ui,
+                Some(Icon::Check),
+                lang.pick("Enregistré", "Saved"),
+                p.success,
             )
-            .truncate(),
-        );
-    } else if let Status::ExportFailed(err) = &app.status {
+            .on_hover_text(path.display().to_string());
+        }
+        (_, path) => {
+            widgets::pill(
+                ui,
+                Some(Icon::Warning),
+                lang.pick("Modifications non enregistrées", "Unsaved changes"),
+                p.warning,
+            )
+            .on_hover_text(match path {
+                Some(p) => format!(
+                    "{} {}",
+                    lang.pick("Projet :", "Project:"),
+                    p.display()
+                ),
+                None => lang
+                    .pick(
+                        "Ce guide n'a pas encore de fichier projet : enregistrez-le pour le reprendre plus tard.",
+                        "This guide has no project file yet: save it to continue later.",
+                    )
+                    .into(),
+            });
+        }
+    }
+    if let Some(path) = doc.export_path() {
+        let (text, color) = if doc.is_exported() {
+            (lang.pick("Exporté", "Exported"), p.success)
+        } else {
+            (
+                lang.pick("Export à refaire", "Export outdated"),
+                p.text_faint,
+            )
+        };
+        widgets::pill(ui, Some(Icon::Report), text, color)
+            .on_hover_text(path.display().to_string());
+    }
+    if let Status::ExportFailed(err) | Status::SaveFailed(err) = &app.status {
         widgets::pill(
             ui,
             Some(Icon::Warning),
-            lang.pick("Échec de l'export", "Export failed"),
+            lang.pick("Échec", "Failed"),
             p.record,
         )
         .on_hover_text(err);
-    } else {
-        widgets::pill(
-            ui,
-            Some(Icon::Warning),
-            lang.pick("Non enregistré", "Not saved"),
-            p.warning,
-        )
-        .on_hover_text(lang.pick(
-            "Les captures sont dans un dossier temporaire : enregistrez le rapport pour les garder.",
-            "The screenshots are in a temporary folder: save the report to keep them.",
-        ));
     }
 }

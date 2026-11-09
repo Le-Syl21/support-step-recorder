@@ -172,7 +172,11 @@ pub fn render_guide_html(view: &GuideView<'_>, lang: Lang) -> String {
 
     // Chaînes traduites injectées dans le gabarit.
     let lang_code = lang.code();
-    let t_subtitle = lang.pick("étape(s) — enregistré le", "step(s) — recorded on");
+    let t_subtitle = if view.show_elapsed {
+        lang.pick("étape(s) — enregistré le", "step(s) — recorded on")
+    } else {
+        lang.pick("étape(s) — guide créé le", "step(s) — guide created on")
+    };
     let t_replay = lang.pick("Mode relecture", "Replay mode");
     let t_prev = lang.pick("Précédent", "Previous");
     let t_next = lang.pick("Suivant", "Next");
