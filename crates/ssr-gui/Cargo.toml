@@ -18,7 +18,7 @@ default = []
 inspection = ["eframe/inspection"]
 
 [dependencies]
-support-step-recorder-core = { path = "../ssr-core", version = "0.2.0" }
+support-step-recorder-core = { path = "../ssr-core", version = "0.3.0" }
 # `persistence` keeps the theme, zoom, language and window geometry.
 eframe = { version = "0.37", features = ["glow", "persistence"] }
 egui = { version = "0.37", features = ["monochrome_emoji_fonts"] }
