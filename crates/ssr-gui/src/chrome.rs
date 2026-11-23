@@ -79,24 +79,17 @@ fn brand(ui: &mut egui::Ui) {
 }
 
 fn language_switch(app: &mut App, ui: &mut egui::Ui) {
-    let segs = [
-        Seg {
-            icon: None,
-            label: Some("FR"),
-            tip: "Français",
-        },
-        Seg {
-            icon: None,
-            label: Some("EN"),
-            tip: "English",
-        },
-    ];
-    let selected = match app.lang {
-        Lang::Fr => 0,
-        Lang::En => 1,
-    };
-    if let Some(i) = widgets::segmented(ui, &segs, selected) {
-        app.set_lang(if i == 0 { Lang::Fr } else { Lang::En });
+    let mut chosen = app.lang;
+    egui::ComboBox::from_id_salt("lang_combo")
+        .width(96.0)
+        .selected_text(app.lang.native_name())
+        .show_ui(ui, |ui| {
+            for l in Lang::ALL {
+                ui.selectable_value(&mut chosen, l, l.native_name());
+            }
+        });
+    if chosen != app.lang {
+        app.set_lang(chosen);
     }
 }
 
@@ -106,17 +99,21 @@ fn theme_switch(app: &mut App, ui: &mut egui::Ui) {
         Seg {
             icon: Some(Icon::Sun),
             label: None,
-            tip: lang.pick("Thème clair", "Light theme"),
+            tip: lang.pick("Thème clair", "Light theme", "Tema claro"),
         },
         Seg {
             icon: Some(Icon::Moon),
             label: None,
-            tip: lang.pick("Thème sombre", "Dark theme"),
+            tip: lang.pick("Thème sombre", "Dark theme", "Tema oscuro"),
         },
         Seg {
             icon: Some(Icon::Monitor),
             label: None,
-            tip: lang.pick("Suivre le système", "Follow the system"),
+            tip: lang.pick(
+                "Suivre le système",
+                "Follow the system",
+                "Seguir el sistema",
+            ),
         },
     ];
     let current = ui.ctx().options(|o| o.theme_preference);
@@ -147,7 +144,7 @@ fn zoom_control(app: &mut App, ui: &mut egui::Ui) {
         if widgets::icon_button(
             ui,
             Icon::Plus,
-            lang.pick("Agrandir (Ctrl +)", "Zoom in (Ctrl +)"),
+            lang.pick("Agrandir (Ctrl +)", "Zoom in (Ctrl +)", "Ampliar (Ctrl +)"),
         )
         .clicked()
         {
@@ -164,7 +161,11 @@ fn zoom_control(app: &mut App, ui: &mut egui::Ui) {
             .frame(false)
             .min_size(egui::vec2(48.0, 0.0)),
         )
-        .on_hover_text(lang.pick("Taille normale (Ctrl 0)", "Reset zoom (Ctrl 0)"));
+        .on_hover_text(lang.pick(
+            "Taille normale (Ctrl 0)",
+            "Reset zoom (Ctrl 0)",
+            "Tamaño normal (Ctrl 0)",
+        ));
     if label.clicked() {
         ctx.set_zoom_factor(1.0);
     }
@@ -172,7 +173,7 @@ fn zoom_control(app: &mut App, ui: &mut egui::Ui) {
         if widgets::icon_button(
             ui,
             Icon::Minus,
-            lang.pick("Réduire (Ctrl -)", "Zoom out (Ctrl -)"),
+            lang.pick("Réduire (Ctrl -)", "Zoom out (Ctrl -)", "Reducir (Ctrl -)"),
         )
         .clicked()
         {
@@ -218,7 +219,11 @@ pub fn status_bar(app: &App, root: &mut egui::Ui, activity: Option<&str>) {
                     }
                 },
                 |ui| {
-                    let tip = lang.pick("Communauté & support", "Community & support");
+                    let tip = lang.pick(
+                        "Communauté & support",
+                        "Community & support",
+                        "Comunidad y soporte",
+                    );
                     ui.hyperlink_to(
                         RichText::new("Discord").size(theme::SIZE_SMALL),
                         DISCORD_URL,

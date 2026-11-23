@@ -58,7 +58,7 @@ fn steps_list(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>, nav: bo
     // Keep the panel at its own width, whatever its content.
     ui.set_min_width(ui.available_width());
     ui.horizontal(|ui| {
-        widgets::eyebrow(ui, lang.pick("Étapes", "Steps"));
+        widgets::eyebrow(ui, lang.pick("Étapes", "Steps", "Pasos"));
         ui.label(
             RichText::new(rows.len().to_string())
                 .size(theme::SIZE_EYEBROW)
@@ -71,8 +71,12 @@ fn steps_list(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>, nav: bo
     if rows.is_empty() {
         ui.add_space(8.0);
         ui.label(
-            RichText::new(lang.pick("Aucune étape pour l'instant.", "No steps yet."))
-                .color(p.text_faint),
+            RichText::new(lang.pick(
+                "Aucune étape pour l'instant.",
+                "No steps yet.",
+                "Aún no hay pasos.",
+            ))
+            .color(p.text_faint),
         );
         return;
     }
@@ -355,16 +359,18 @@ fn step_row(
     let second = match &row.action {
         _ if row.is_manual() => {
             if row.notes.is_empty() {
-                lang.pick("Étape rédigée", "Written step").into()
+                lang.pick("Étape rédigée", "Written step", "Paso redactado")
+                    .into()
             } else {
                 row.notes.lines().next().unwrap_or_default().to_string()
             }
         }
         _ if row.custom_title().is_some() => row.auto_description(lang),
         Action::Text { content } => format!("\u{201c}{}\u{201d}", steps::shown_text(content)),
-        Action::Click { .. } => row
-            .target()
-            .unwrap_or_else(|| lang.pick("Fenêtre inconnue", "Unknown window").into()),
+        Action::Click { .. } => row.target().unwrap_or_else(|| {
+            lang.pick("Fenêtre inconnue", "Unknown window", "Ventana desconocida")
+                .into()
+        }),
     };
     let second_g = one_line(
         ui,
@@ -395,6 +401,7 @@ fn step_row(
             .on_hover_text(lang.pick(
             "Glisser pour déplacer · Alt+↑/↓\nCtrl+clic / Maj+clic : sélectionner plusieurs étapes",
             "Drag to move · Alt+Up/Down\nCtrl+click / Shift+click: select several steps",
+            "Arrastra para mover · Alt+↑/↓\nCtrl+clic / Mayús+clic: seleccionar varios pasos",
         ))
     } else {
         resp.on_hover_cursor(egui::CursorIcon::PointingHand)
@@ -438,7 +445,7 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
 
     let mut eyebrow = format!(
         "{} {} / {}",
-        lang.pick("Étape", "Step"),
+        lang.pick("Étape", "Step", "Paso"),
         current + 1,
         snap.rows.len()
     );
@@ -492,9 +499,9 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
                 ui.set_width(ui.available_width());
                 egui::CollapsingHeader::new(
                     RichText::new(if editable {
-                        lang.pick("Modifier l'étape", "Edit step")
+                        lang.pick("Modifier l'étape", "Edit step", "Editar paso")
                     } else {
-                        lang.pick("Détails de l'étape", "Step details")
+                        lang.pick("Détails de l'étape", "Step details", "Detalles del paso")
                     })
                     .size(theme::SIZE_SMALL)
                     .color(p.text_muted),
@@ -529,9 +536,17 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
                 }
                 None => {
                     let msg = if app.stage() == Stage::Recording {
-                        lang.pick("Capture en cours d'écriture…", "Screenshot being written…")
+                        lang.pick(
+                            "Capture en cours d'écriture…",
+                            "Screenshot being written…",
+                            "Escribiendo la captura…",
+                        )
                     } else {
-                        lang.pick("Capture introuvable.", "Screenshot not found.")
+                        lang.pick(
+                            "Capture introuvable.",
+                            "Screenshot not found.",
+                            "Captura no encontrada.",
+                        )
                     };
                     placeholder(ui, Icon::Camera, msg, None);
                     // Only while recording: the file is about to appear. A
@@ -553,6 +568,7 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
                         lang.pick(
                             "Étape rédigée, sans capture. « Image… » pour en ajouter une.",
                             "Written step, no screenshot. Use “Image…” to add one.",
+                            "Paso redactado, sin captura. Usa «Imagen…» para añadir una.",
                         ),
                     )
                 } else if typed.is_some() {
@@ -561,6 +577,7 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
                         lang.pick(
                             "Étape de saisie clavier : pas de capture associée.",
                             "Keyboard input step: no screenshot.",
+                            "Paso de entrada de teclado: sin captura asociada.",
                         ),
                     )
                 } else {
@@ -569,6 +586,7 @@ fn selected_step(app: &mut App, ui: &mut egui::Ui, snap: Option<&Snapshot>) {
                         lang.pick(
                             "Pas de capture pour cette étape.",
                             "No screenshot for this step.",
+                            "No hay captura para este paso.",
                         ),
                     )
                 };
@@ -603,7 +621,10 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
     let mut revert_notes = false;
 
     ui.add_enabled_ui(enabled, |ui| {
-        widgets::eyebrow(ui, lang.pick("Titre de l'étape", "Step title"));
+        widgets::eyebrow(
+            ui,
+            lang.pick("Titre de l'étape", "Step title", "Título del paso"),
+        );
         let r = ui.add(
             egui::TextEdit::singleline(&mut draft.title)
                 .hint_text(&auto)
@@ -619,19 +640,23 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
         ui.horizontal(|ui| {
             let (txt, col) = if row.custom_title().is_some() {
                 (
-                    lang.pick("Titre personnalisé", "Custom title"),
+                    lang.pick("Titre personnalisé", "Custom title", "Título personalizado"),
                     p.accent_text,
                 )
             } else {
                 (
-                    lang.pick("Titre automatique", "Automatic title"),
+                    lang.pick("Titre automatique", "Automatic title", "Título automático"),
                     p.text_faint,
                 )
             };
             ui.label(RichText::new(txt).size(theme::SIZE_SMALL).color(col));
             if row.custom_title().is_some()
                 && ui
-                    .small_button(lang.pick("Rétablir l'automatique", "Restore automatic"))
+                    .small_button(lang.pick(
+                        "Rétablir l'automatique",
+                        "Restore automatic",
+                        "Restablecer automático",
+                    ))
                     .clicked()
             {
                 draft.title.clear();
@@ -639,12 +664,20 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
             }
         });
         ui.add_space(4.0);
-        widgets::eyebrow(ui, lang.pick("Consigne détaillée", "Instructions"));
+        widgets::eyebrow(
+            ui,
+            lang.pick(
+                "Consigne détaillée",
+                "Instructions",
+                "Instrucciones detalladas",
+            ),
+        );
         let r = ui.add(
             egui::TextEdit::multiline(&mut draft.notes)
                 .hint_text(lang.pick(
                     "Expliquez ce qu'il faut faire à cette étape…",
                     "Explain what to do at this step…",
+                    "Explica qué hay que hacer en este paso…",
                 ))
                 .desired_rows(4)
                 .desired_width(f32::INFINITY),
@@ -677,7 +710,7 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
                 if widgets::icon_button(
                     ui,
                     Icon::ArrowUp,
-                    lang.pick("Monter (Alt+↑)", "Move up (Alt+Up)"),
+                    lang.pick("Monter (Alt+↑)", "Move up (Alt+Up)", "Subir (Alt+↑)"),
                 )
                 .clicked()
                 {
@@ -688,7 +721,7 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
                 if widgets::icon_button(
                     ui,
                     Icon::ArrowDown,
-                    lang.pick("Descendre (Alt+↓)", "Move down (Alt+Down)"),
+                    lang.pick("Descendre (Alt+↓)", "Move down (Alt+Down)", "Bajar (Alt+↓)"),
                 )
                 .clicked()
                 {
@@ -699,11 +732,12 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
                 ui,
                 Kind::Ghost,
                 Some(Icon::Trash),
-                lang.pick("Supprimer l'étape", "Delete step"),
+                lang.pick("Supprimer l'étape", "Delete step", "Eliminar paso"),
             )
             .on_hover_text(lang.pick(
                 "Retire l'étape du guide (Suppr ; Ctrl+Z pour annuler)",
                 "Removes the step from the guide (Delete; Ctrl+Z to undo)",
+                "Quita el paso de la guía (Supr; Ctrl+Z para deshacer)",
             ))
             .clicked()
             {
@@ -712,9 +746,9 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
         });
         ui.horizontal_wrapped(|ui| {
             let label = if row.screenshot.is_some() {
-                lang.pick("Remplacer la capture…", "Replace screenshot…")
+                lang.pick("Remplacer la capture…", "Replace screenshot…", "Reemplazar captura…")
             } else {
-                lang.pick("Ajouter une capture…", "Add screenshot…")
+                lang.pick("Ajouter une capture…", "Add screenshot…", "Añadir captura…")
             };
             if widgets::button(ui, Kind::Secondary, Some(Icon::Image), label).clicked() {
                 act = 4;
@@ -724,11 +758,12 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
                     ui,
                     Kind::Ghost,
                     Some(Icon::Minus),
-                    lang.pick("Retirer la capture", "Remove screenshot"),
+                    lang.pick("Retirer la capture", "Remove screenshot", "Quitar captura"),
                 )
                 .on_hover_text(lang.pick(
                     "Garde l'étape et son texte ; seule l'image est retirée du guide.",
                     "Keeps the step and its text; only the image leaves the guide.",
+                    "Conserva el paso y su texto; solo se quita la imagen de la guía.",
                 ))
                 .clicked()
             {
@@ -742,11 +777,12 @@ fn properties(app: &mut App, ui: &mut egui::Ui, row: &StepRow) {
                     ui,
                     Kind::Ghost,
                     Some(Icon::Keyboard),
-                    lang.pick("Masquer le texte saisi", "Redact typed text"),
+                    lang.pick("Masquer le texte saisi", "Redact typed text", "Ocultar el texto escrito"),
                 )
                 .on_hover_text(lang.pick(
                     "Remplace le texte tapé (mot de passe…) par •••, dans le guide et l'export.",
                     "Replaces the typed text (a password…) with •••, in the guide and the export.",
+                    "Reemplaza el texto escrito (una contraseña…) por •••, en la guía y en la exportación.",
                 ))
                 .clicked()
             {
@@ -806,7 +842,11 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
         ui.label(
             RichText::new(format!(
                 "{n} {}",
-                lang.pick("étapes sélectionnées", "steps selected")
+                lang.pick(
+                    "étapes sélectionnées",
+                    "steps selected",
+                    "pasos seleccionados"
+                )
             ))
             .size(16.0)
             .strong()
@@ -818,7 +858,7 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
         egui::Label::new(
             RichText::new(format!(
                 "{} {}",
-                lang.pick("Étapes", "Steps"),
+                lang.pick("Étapes", "Steps", "Pasos"),
                 numbers.join(", ")
             ))
             .size(theme::SIZE_SMALL)
@@ -834,7 +874,7 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
                 if widgets::icon_button(
                     ui,
                     Icon::ArrowUp,
-                    lang.pick("Monter (Alt+↑)", "Move up (Alt+Up)"),
+                    lang.pick("Monter (Alt+↑)", "Move up (Alt+Up)", "Subir (Alt+↑)"),
                 )
                 .clicked()
                 {
@@ -845,7 +885,7 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
                 if widgets::icon_button(
                     ui,
                     Icon::ArrowDown,
-                    lang.pick("Descendre (Alt+↓)", "Move down (Alt+Down)"),
+                    lang.pick("Descendre (Alt+↓)", "Move down (Alt+Down)", "Bajar (Alt+↓)"),
                 )
                 .clicked()
                 {
@@ -854,13 +894,15 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
             });
             let label = format!(
                 "{} {n} {}",
-                lang.pick("Supprimer les", "Delete"),
-                lang.pick("étapes", "steps")
+                lang.pick("Supprimer les", "Delete", "Eliminar los"),
+                lang.pick("étapes", "steps", "pasos")
             );
             if widgets::button(ui, Kind::Ghost, Some(Icon::Trash), &label)
-                .on_hover_text(
-                    lang.pick("Suppr ; Ctrl+Z pour annuler", "Delete key; Ctrl+Z to undo"),
-                )
+                .on_hover_text(lang.pick(
+                    "Suppr ; Ctrl+Z pour annuler",
+                    "Delete key; Ctrl+Z to undo",
+                    "Supr; Ctrl+Z para deshacer",
+                ))
                 .clicked()
             {
                 act = 3;
@@ -873,6 +915,7 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
             RichText::new(lang.pick(
                 "Glissez une des étapes sélectionnées pour les déplacer ensemble. Ctrl+clic ajoute ou retire une étape, Maj+clic sélectionne une plage, Ctrl+A tout, Échap revient à une seule étape.",
                 "Drag one of the selected steps to move them together. Ctrl+click adds or removes a step, Shift+click selects a range, Ctrl+A all, Esc goes back to one step.",
+                "Arrastra uno de los pasos seleccionados para moverlos juntos. Ctrl+clic añade o quita un paso, Mayús+clic selecciona un rango, Ctrl+A todos, Esc vuelve a un solo paso.",
             ))
             .size(theme::SIZE_SMALL)
             .color(p.text_faint),
@@ -883,7 +926,7 @@ fn multi_properties(app: &mut App, ui: &mut egui::Ui) {
         ui,
         Kind::Secondary,
         None,
-        lang.pick("Une seule étape", "Single step"),
+        lang.pick("Une seule étape", "Single step", "Un solo paso"),
     )
     .clicked()
     {
@@ -908,6 +951,7 @@ fn empty_state(app: &App, ui: &mut egui::Ui) {
             lang.pick(
                 "En attente du premier clic… Chaque clic dans une autre fenêtre ajoute une étape ici.",
                 "Waiting for the first click… Each click in another window adds a step here.",
+                "Esperando el primer clic… Cada clic en otra ventana añade un paso aquí.",
             ),
             None,
         );
@@ -918,6 +962,7 @@ fn empty_state(app: &App, ui: &mut egui::Ui) {
             lang.pick(
                 "Ce guide est vide. Importez des étapes d'un enregistrement, ajoutez une image ou une étape rédigée.",
                 "This guide is empty. Import steps from a recording, add an image or a written step.",
+                "Esta guía está vacía. Importa pasos de una grabación, añade una imagen o un paso redactado.",
             ),
             None,
         );
@@ -955,32 +1000,40 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
     let mut items: Vec<(Icon, &str, String)> = Vec::new();
     items.push((
         Icon::Clock,
-        lang.pick("Heure", "Time"),
+        lang.pick("Heure", "Time", "Hora"),
         steps::human_date(row.timestamp_ms, lang),
     ));
     if !row.is_manual() {
         items.push((
             Icon::Clock,
             if row.source.is_some() {
-                lang.pick("Dans son enregistrement", "In its recording")
+                lang.pick(
+                    "Dans son enregistrement",
+                    "In its recording",
+                    "En su grabación",
+                )
             } else {
-                lang.pick("Depuis le début", "Since start")
+                lang.pick("Depuis le début", "Since start", "Desde el inicio")
             },
             steps::offset(row.elapsed_ms, lang),
         ));
     }
     if row.is_manual() {
-        items[0].1 = lang.pick("Créée le", "Created");
+        items[0].1 = lang.pick("Créée le", "Created", "Creada el");
         items.push((
             Icon::Pencil,
-            lang.pick("Type", "Kind"),
-            lang.pick("Étape rédigée dans l'éditeur", "Step written in the editor")
-                .into(),
+            lang.pick("Type", "Kind", "Tipo"),
+            lang.pick(
+                "Étape rédigée dans l'éditeur",
+                "Step written in the editor",
+                "Paso redactado en el editor",
+            )
+            .into(),
         ));
         if let Some(name) = &row.screenshot {
             items.push((
                 Icon::Camera,
-                lang.pick("Capture", "Screenshot"),
+                lang.pick("Capture", "Screenshot", "Captura"),
                 short_asset(name),
             ));
         }
@@ -996,36 +1049,48 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
         } => {
             items.push((
                 Icon::Mouse,
-                lang.pick("Action", "Action"),
-                lang.pick("Clic", "Click").into(),
+                lang.pick("Action", "Action", "Acción"),
+                lang.pick("Clic", "Click", "Clic").into(),
             ));
             items.push((
                 Icon::Mouse,
-                lang.pick("Bouton", "Button"),
+                lang.pick("Bouton", "Button", "Botón"),
                 button.label(lang),
             ));
             let pos = match (x.zip(*y), rel_x.zip(*rel_y)) {
                 (Some((x, y)), Some((rx, ry))) => format!(
                     "{x}, {y} {}\n{rx}, {ry} {}",
-                    lang.pick("à l'écran", "on screen"),
-                    lang.pick("dans la fenêtre", "in the window"),
+                    lang.pick("à l'écran", "on screen", "en pantalla"),
+                    lang.pick("dans la fenêtre", "in the window", "en la ventana"),
                 ),
-                (Some((x, y)), None) => format!("{x}, {y} {}", lang.pick("à l'écran", "on screen")),
+                (Some((x, y)), None) => format!(
+                    "{x}, {y} {}",
+                    lang.pick("à l'écran", "on screen", "en pantalla")
+                ),
                 _ => lang
-                    .pick("non disponible (Wayland)", "not available (Wayland)")
+                    .pick(
+                        "non disponible (Wayland)",
+                        "not available (Wayland)",
+                        "no disponible (Wayland)",
+                    )
                     .into(),
             };
-            items.push((Icon::Mouse, lang.pick("Position", "Position"), pos));
+            items.push((
+                Icon::Mouse,
+                lang.pick("Position", "Position", "Posición"),
+                pos,
+            ));
         }
         Action::Text { content } => {
             items.push((
                 Icon::Keyboard,
-                lang.pick("Action", "Action"),
-                lang.pick("Saisie au clavier", "Typing").into(),
+                lang.pick("Action", "Action", "Acción"),
+                lang.pick("Saisie au clavier", "Typing", "Entrada de teclado")
+                    .into(),
             ));
             items.push((
                 Icon::Keyboard,
-                lang.pick("Texte saisi", "Typed text"),
+                lang.pick("Texte saisi", "Typed text", "Texto escrito"),
                 steps::shown_text(content),
             ));
         }
@@ -1038,14 +1103,17 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
         .filter(|a| !a.is_empty());
     items.push((
         Icon::Window,
-        lang.pick("Fenêtre", "Window"),
+        lang.pick("Fenêtre", "Window", "Ventana"),
         match (window, title) {
             (_, Some(t)) => t.to_owned(),
-            (Some(_), None) => lang.pick("(sans titre)", "(untitled)").into(),
+            (Some(_), None) => lang
+                .pick("(sans titre)", "(untitled)", "(sin título)")
+                .into(),
             (None, None) => lang
                 .pick(
                     "inconnue (non exposée sous Wayland)",
                     "unknown (not exposed under Wayland)",
+                    "desconocida (no expuesta en Wayland)",
                 )
                 .into(),
         },
@@ -1057,23 +1125,27 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
         } else {
             a.to_owned()
         };
-        items.push((Icon::Window, lang.pick("Application", "Application"), value));
+        items.push((
+            Icon::Window,
+            lang.pick("Application", "Application", "Aplicación"),
+            value,
+        ));
     }
     if let Some(w) = window.filter(|w| w.width > 0 && w.height > 0) {
         items.push((
             Icon::Window,
-            lang.pick("Géométrie", "Geometry"),
+            lang.pick("Géométrie", "Geometry", "Geometría"),
             format!("{} × {} @ {}, {}", w.width, w.height, w.x, w.y),
         ));
     }
     if let Some(src) = &row.source {
         items.push((
             Icon::Report,
-            lang.pick("Source", "Source"),
+            lang.pick("Source", "Source", "Origen"),
             format!(
                 "{} · {} {}",
                 src.source_label,
-                lang.pick("étape", "step"),
+                lang.pick("étape", "step", "paso"),
                 src.original_index
             ),
         ));
@@ -1081,7 +1153,7 @@ fn metadata(ui: &mut egui::Ui, row: &StepRow, lang: Lang, grid: Option<usize>) {
     if let Some(name) = &row.screenshot {
         items.push((
             Icon::Camera,
-            lang.pick("Capture", "Screenshot"),
+            lang.pick("Capture", "Screenshot", "Captura"),
             short_asset(name),
         ));
     }

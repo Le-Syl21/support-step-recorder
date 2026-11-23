@@ -81,16 +81,34 @@ pub enum EditKind {
 impl EditKind {
     pub fn label(self, lang: Lang) -> &'static str {
         match self {
-            EditKind::Rename => lang.pick("renommer l'étape", "rename step"),
-            EditKind::Notes => lang.pick("modifier la consigne", "edit instructions"),
-            EditKind::AddStep => lang.pick("ajouter une étape", "add step"),
-            EditKind::AttachImage => lang.pick("ajouter la capture", "attach screenshot"),
-            EditKind::DetachImage => lang.pick("retirer la capture", "remove screenshot"),
-            EditKind::Delete => lang.pick("supprimer l'étape", "delete step"),
-            EditKind::Move => lang.pick("déplacer l'étape", "move step"),
-            EditKind::Import => lang.pick("importer des étapes", "import steps"),
-            EditKind::Redact => lang.pick("masquer le texte saisi", "redact typed text"),
-            EditKind::GuideInfo => lang.pick("modifier le guide", "edit guide details"),
+            EditKind::Rename => lang.pick("renommer l'étape", "rename step", "renombrar el paso"),
+            EditKind::Notes => lang.pick(
+                "modifier la consigne",
+                "edit instructions",
+                "editar las instrucciones",
+            ),
+            EditKind::AddStep => lang.pick("ajouter une étape", "add step", "añadir un paso"),
+            EditKind::AttachImage => lang.pick(
+                "ajouter la capture",
+                "attach screenshot",
+                "añadir la captura",
+            ),
+            EditKind::DetachImage => lang.pick(
+                "retirer la capture",
+                "remove screenshot",
+                "quitar la captura",
+            ),
+            EditKind::Delete => lang.pick("supprimer l'étape", "delete step", "eliminar el paso"),
+            EditKind::Move => lang.pick("déplacer l'étape", "move step", "mover el paso"),
+            EditKind::Import => lang.pick("importer des étapes", "import steps", "importar pasos"),
+            EditKind::Redact => lang.pick(
+                "masquer le texte saisi",
+                "redact typed text",
+                "ocultar el texto escrito",
+            ),
+            EditKind::GuideInfo => {
+                lang.pick("modifier le guide", "edit guide details", "editar la guía")
+            }
         }
     }
 }

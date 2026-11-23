@@ -80,7 +80,13 @@ impl Viewer {
 
         ui.horizontal(|ui| {
             ui.spacing_mut().item_spacing.x = 2.0;
-            if widgets::icon_button(ui, Icon::Minus, lang.pick("Dézoomer", "Zoom out")).clicked() {
+            if widgets::icon_button(
+                ui,
+                Icon::Minus,
+                lang.pick("Dézoomer", "Zoom out", "Reducir zoom"),
+            )
+            .clicked()
+            {
                 self.zoom_by(1.0 / 1.25);
             }
             let pct = format!("{:.0} %", fit * self.zoom * ppp * 100.0);
@@ -92,13 +98,24 @@ impl Viewer {
             .on_hover_text(lang.pick(
                 "Taille réelle de la capture, en pixels",
                 "Size relative to the screenshot's actual pixels",
+                "Tamaño real de la captura, en píxeles",
             ));
-            if widgets::icon_button(ui, Icon::Plus, lang.pick("Zoomer", "Zoom in")).clicked() {
+            if widgets::icon_button(
+                ui,
+                Icon::Plus,
+                lang.pick("Zoomer", "Zoom in", "Aumentar zoom"),
+            )
+            .clicked()
+            {
                 self.zoom_by(1.25);
             }
             ui.add_space(6.0);
-            if widgets::icon_button(ui, Icon::Fit, lang.pick("Ajuster à la vue", "Fit to view"))
-                .clicked()
+            if widgets::icon_button(
+                ui,
+                Icon::Fit,
+                lang.pick("Ajuster à la vue", "Fit to view", "Ajustar a la vista"),
+            )
+            .clicked()
             {
                 self.fit();
             }
@@ -106,7 +123,11 @@ impl Viewer {
                 && widgets::icon_button(
                     ui,
                     Icon::Expand,
-                    lang.pick("Agrandir (Échap pour fermer)", "Enlarge (Esc to close)"),
+                    lang.pick(
+                        "Agrandir (Échap pour fermer)",
+                        "Enlarge (Esc to close)",
+                        "Ampliar (Esc para cerrar)",
+                    ),
                 )
                 .clicked()
             {
@@ -119,6 +140,7 @@ impl Viewer {
                     egui::RichText::new(lang.pick(
                         "Molette : zoom · glisser : déplacer · double-clic : 1:1",
                         "Wheel: zoom · drag: pan · double-click: 1:1",
+                        "Rueda: zoom · arrastrar: mover · doble clic: 1:1",
                     ))
                     .size(theme::SIZE_SMALL)
                     .color(p.text_faint),

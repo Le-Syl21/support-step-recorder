@@ -92,7 +92,7 @@ pub fn import_dialog(app: &mut App, ctx: &egui::Context) {
             ui.horizontal(|ui| {
                 icons::icon(ui, Icon::Import, 22.0, p.accent_text);
                 ui.label(
-                    RichText::new(lang.pick("Importer des étapes", "Import steps"))
+                    RichText::new(lang.pick("Importer des étapes", "Import steps", "Importar pasos"))
                         .size(18.0)
                         .strong()
                         .color(p.text),
@@ -102,6 +102,7 @@ pub fn import_dialog(app: &mut App, ctx: &egui::Context) {
                 RichText::new(lang.pick(
                     "Cochez les étapes à copier dans le guide. Les archives d'origine ne sont pas modifiées.",
                     "Tick the steps to copy into the guide. The original archives are not modified.",
+                    "Marca los pasos que quieres copiar en la guía. Los archivos originales no se modifican.",
                 ))
                 .color(p.text_muted),
             );
@@ -126,17 +127,17 @@ pub fn import_dialog(app: &mut App, ctx: &egui::Context) {
                                         RichText::new(format!(
                                             "· {} {}",
                                             rec.steps.len(),
-                                            lang.pick("étape(s)", "step(s)")
+                                            lang.pick("étape(s)", "step(s)", "paso(s)")
                                         ))
                                         .color(p.text_faint),
                                     );
                                     ui.with_layout(
                                         egui::Layout::right_to_left(egui::Align::Center),
                                         |ui| {
-                                            if ui.small_button(lang.pick("Aucune", "None")).clicked() {
+                                            if ui.small_button(lang.pick("Aucune", "None", "Ninguno")).clicked() {
                                                 checked.iter_mut().for_each(|c| *c = false);
                                             }
-                                            if ui.small_button(lang.pick("Toutes", "All")).clicked() {
+                                            if ui.small_button(lang.pick("Toutes", "All", "Todos")).clicked() {
                                                 checked.iter_mut().for_each(|c| *c = true);
                                             }
                                         },
@@ -203,7 +204,8 @@ pub fn import_dialog(app: &mut App, ctx: &egui::Context) {
                                                                 "{} ({w})",
                                                                 lang.pick(
                                                                     "Capture illisible : l'étape sera importée sans image",
-                                                                    "Unreadable screenshot: the step comes without its image"
+                                                                    "Unreadable screenshot: the step comes without its image",
+                                                                    "Captura ilegible: el paso se importará sin imagen"
                                                                 )
                                                             ))
                                                             .size(theme::SIZE_SMALL)
@@ -223,23 +225,27 @@ pub fn import_dialog(app: &mut App, ctx: &egui::Context) {
 
             ui.add_space(8.0);
             ui.horizontal_wrapped(|ui| {
-                ui.label(RichText::new(lang.pick("Insérer :", "Insert:")).color(p.text_muted));
+                ui.label(RichText::new(lang.pick("Insérer :", "Insert:", "Insertar:")).color(p.text_muted));
                 ui.radio_value(
                     &mut dialog.position,
                     Position::Append,
-                    lang.pick("à la fin", "at the end"),
+                    lang.pick("à la fin", "at the end", "al final"),
                 );
                 ui.add_enabled_ui(has_selection, |ui| {
                     ui.radio_value(
                         &mut dialog.position,
                         Position::AfterSelected,
-                        lang.pick("après l'étape sélectionnée", "after the selected step"),
+                        lang.pick(
+                            "après l'étape sélectionnée",
+                            "after the selected step",
+                            "después del paso seleccionado",
+                        ),
                     );
                 });
                 ui.radio_value(
                     &mut dialog.position,
                     Position::Start,
-                    lang.pick("au début", "at the start"),
+                    lang.pick("au début", "at the start", "al principio"),
                 );
             });
             ui.add_space(12.0);
@@ -248,13 +254,17 @@ pub fn import_dialog(app: &mut App, ctx: &egui::Context) {
                 ui.add_enabled_ui(n > 0, |ui| {
                     let label = format!(
                         "{} ({n})",
-                        lang.pick("Importer la sélection", "Import selected")
+                        lang.pick(
+                            "Importer la sélection",
+                            "Import selected",
+                            "Importar la selección",
+                        )
                     );
                     if widgets::button(ui, Kind::Primary, Some(Icon::Import), &label).clicked() {
                         choice = Choice::Import;
                     }
                 });
-                if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel")).clicked()
+                if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel", "Cancelar")).clicked()
                     || ui.input(|i| i.key_pressed(egui::Key::Escape))
                 {
                     choice = Choice::Cancel;
