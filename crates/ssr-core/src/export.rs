@@ -173,14 +173,22 @@ pub fn render_guide_html(view: &GuideView<'_>, lang: Lang) -> String {
     // Chaînes traduites injectées dans le gabarit.
     let lang_code = lang.code();
     let t_subtitle = if view.show_elapsed {
-        lang.pick("étape(s) — enregistré le", "step(s) — recorded on")
+        lang.pick(
+            "étape(s) — enregistré le",
+            "step(s) — recorded on",
+            "paso(s) — grabado el",
+        )
     } else {
-        lang.pick("étape(s) — guide créé le", "step(s) — guide created on")
+        lang.pick(
+            "étape(s) — guide créé le",
+            "step(s) — guide created on",
+            "paso(s) — guía creada el",
+        )
     };
-    let t_replay = lang.pick("Mode relecture", "Replay mode");
-    let t_prev = lang.pick("Précédent", "Previous");
-    let t_next = lang.pick("Suivant", "Next");
-    let t_step = lang.pick("Étape", "Step");
+    let t_replay = lang.pick("Mode relecture", "Replay mode", "Modo de reproducción");
+    let t_prev = lang.pick("Précédent", "Previous", "Anterior");
+    let t_next = lang.pick("Suivant", "Next", "Siguiente");
+    let t_step = lang.pick("Étape", "Step", "Paso");
 
     format!(
         r#"<!DOCTYPE html>
@@ -340,7 +348,11 @@ fn render_step(step: &Step, number: usize, lang: Lang, show_elapsed: bool) -> St
             format!(
                 "<img src=\"{}\" alt=\"{} {}\" loading=\"lazy\" onclick=\"zoom(this)\">",
                 escape(name),
-                lang.pick("Capture de l'étape", "Screenshot of step"),
+                lang.pick(
+                    "Capture de l'étape",
+                    "Screenshot of step",
+                    "Captura del paso"
+                ),
                 number
             )
         })

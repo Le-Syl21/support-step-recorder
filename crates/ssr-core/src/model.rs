@@ -140,7 +140,9 @@ impl Step {
     /// sous X11) est nommée d'après son application plutôt que « «  » ».
     pub fn auto_title(&self, lang: Lang) -> String {
         if self.kind == StepKind::Manual {
-            return lang.pick("Étape sans titre", "Untitled step").to_string();
+            return lang
+                .pick("Étape sans titre", "Untitled step", "Paso sin título")
+                .to_string();
         }
         let window = self.window.as_ref().map(|w| {
             if w.title.is_empty() && !w.app_name.is_empty() {
@@ -177,6 +179,7 @@ impl Step {
             .unwrap_or_else(|| match lang {
                 Lang::Fr => "la fenêtre active".to_string(),
                 Lang::En => "the active window".to_string(),
+                Lang::Es => "la ventana activa".to_string(),
             });
 
         match action {
@@ -185,6 +188,7 @@ impl Step {
                 match lang {
                     Lang::Fr => format!("Clic {b} sur {target}"),
                     Lang::En => format!("{} click on {target}", capitalize(&b)),
+                    Lang::Es => format!("Clic {b} en {target}"),
                 }
             }
             Action::Text { content } => {
@@ -192,6 +196,7 @@ impl Step {
                 match lang {
                     Lang::Fr => format!("Saisie « {shown} » dans {target}"),
                     Lang::En => format!("Typed “{shown}” in {target}"),
+                    Lang::Es => format!("Escribió «{shown}» en {target}"),
                 }
             }
         }

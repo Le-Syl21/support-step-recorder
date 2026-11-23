@@ -97,17 +97,22 @@ impl StepRow {
             return t.to_string();
         }
         if self.is_manual() {
-            return lang.pick("Étape rédigée", "Written step").to_string();
+            return lang
+                .pick("Étape rédigée", "Written step", "Paso redactado")
+                .to_string();
         }
         match &self.action {
             Action::Click { button, .. } => {
                 let b = button.label(lang);
                 match lang {
                     Lang::Fr => format!("Clic {b}"),
+                    Lang::Es => format!("Clic {b}"),
                     Lang::En => format!("{} click", capitalize(&b)),
                 }
             }
-            Action::Text { .. } => lang.pick("Saisie au clavier", "Typing").to_string(),
+            Action::Text { .. } => lang
+                .pick("Saisie au clavier", "Typing", "Escritura con el teclado")
+                .to_string(),
         }
     }
 
@@ -199,6 +204,7 @@ pub fn human_date(ms: u128, lang: Lang) -> String {
     let fmt = match lang {
         Lang::Fr => "%d/%m/%Y %H:%M:%S",
         Lang::En => "%Y-%m-%d %H:%M:%S",
+        Lang::Es => "%d/%m/%Y %H:%M:%S",
     };
     chrono::DateTime::from_timestamp_millis(ms as i64)
         .map(|dt| dt.with_timezone(&chrono::Local).format(fmt).to_string())
@@ -219,7 +225,7 @@ pub fn clock(secs: u64) -> String {
 pub fn offset(ms: u128, lang: Lang) -> String {
     let s = format!("+{:.1} s", ms as f64 / 1000.0);
     match lang {
-        Lang::Fr => s.replace('.', ","),
+        Lang::Fr | Lang::Es => s.replace('.', ","),
         Lang::En => s,
     }
 }
@@ -260,5 +266,6 @@ mod tests {
     fn offset_formats() {
         assert_eq!(offset(12_400, Lang::En), "+12.4 s");
         assert_eq!(offset(12_400, Lang::Fr), "+12,4 s");
+        assert_eq!(offset(12_400, Lang::Es), "+12,4 s");
     }
 }

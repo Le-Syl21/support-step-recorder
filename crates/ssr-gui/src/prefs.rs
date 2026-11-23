@@ -72,11 +72,10 @@ impl Prefs {
 
     /// The remembered language, else the one of the system locale.
     pub fn lang(&self) -> Lang {
-        match self.lang.as_deref() {
-            Some("fr") => Lang::Fr,
-            Some("en") => Lang::En,
-            _ => Lang::detect(),
-        }
+        self.lang
+            .as_deref()
+            .and_then(Lang::from_code)
+            .unwrap_or_else(Lang::detect)
     }
 
     pub fn set_lang(&mut self, lang: Lang) {
@@ -127,5 +126,12 @@ mod tests {
         assert_eq!(p.lang(), Lang::En);
         p.set_lang(Lang::Fr);
         assert_eq!(p.lang(), Lang::Fr);
+        p.set_lang(Lang::Es);
+        assert_eq!(p.lang(), Lang::Es);
+        for l in Lang::ALL {
+            assert_eq!(Lang::from_code(l.code()), Some(l));
+            p.set_lang(l);
+            assert_eq!(p.lang(), l);
+        }
     }
 }

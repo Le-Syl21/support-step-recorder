@@ -60,15 +60,22 @@ pub fn unsaved_changes(app: &mut App, ctx: &egui::Context) {
         Intent::NewRecording => lang.pick(
             "Un nouvel enregistrement fermera ce guide.",
             "A new recording will close this guide.",
+            "Una nueva grabación cerrará esta guía.",
         ),
         Intent::OpenProject | Intent::OpenRecording | Intent::Recover(_) => lang.pick(
             "Ouvrir un autre guide fermera celui-ci.",
             "Opening another guide will close this one.",
+            "Abrir otra guía cerrará esta.",
         ),
-        Intent::CloseGuide => lang.pick("Ce guide va être fermé.", "This guide will be closed."),
+        Intent::CloseGuide => lang.pick(
+            "Ce guide va être fermé.",
+            "This guide will be closed.",
+            "Esta guía se va a cerrar.",
+        ),
         Intent::Quit => lang.pick(
             "L'application va se fermer.",
             "The application is about to close.",
+            "La aplicación se va a cerrar.",
         ),
     };
     let message = format!(
@@ -76,6 +83,7 @@ pub fn unsaved_changes(app: &mut App, ctx: &egui::Context) {
         lang.pick(
             "Ses modifications ne sont pas enregistrées dans un projet (un export ZIP ne suffit pas pour reprendre l'édition).",
             "Its changes are not saved to a project (an exported ZIP is not enough to keep editing).",
+            "Sus cambios no están guardados en un proyecto (un ZIP exportado no basta para seguir editando).",
         )
     );
     #[derive(PartialEq)]
@@ -90,14 +98,22 @@ pub fn unsaved_changes(app: &mut App, ctx: &egui::Context) {
         "unsaved_changes",
         Icon::Warning,
         p.warning,
-        lang.pick("Enregistrer les modifications ?", "Save changes?"),
+        lang.pick(
+            "Enregistrer les modifications ?",
+            "Save changes?",
+            "¿Guardar los cambios?",
+        ),
         &message,
         |ui| {
             if widgets::button(
                 ui,
                 Kind::Primary,
                 Some(Icon::Save),
-                lang.pick("Enregistrer le projet…", "Save project…"),
+                lang.pick(
+                    "Enregistrer le projet…",
+                    "Save project…",
+                    "Guardar proyecto…",
+                ),
             )
             .clicked()
             {
@@ -107,13 +123,20 @@ pub fn unsaved_changes(app: &mut App, ctx: &egui::Context) {
                 ui,
                 Kind::Secondary,
                 Some(Icon::Trash),
-                lang.pick("Ne pas enregistrer", "Don't save"),
+                lang.pick("Ne pas enregistrer", "Don't save", "No guardar"),
             )
             .clicked()
             {
                 return Choice::Discard;
             }
-            if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel")).clicked() {
+            if widgets::button(
+                ui,
+                Kind::Ghost,
+                None,
+                lang.pick("Annuler", "Cancel", "Cancelar"),
+            )
+            .clicked()
+            {
                 return Choice::Cancel;
             }
             Choice::None
@@ -145,23 +168,28 @@ pub fn privacy(app: &mut App, ctx: &egui::Context) {
         "privacy",
         Icon::Keyboard,
         p.warning,
-        lang.pick("Avant d'enregistrer", "Before recording"),
+        lang.pick("Avant d'enregistrer", "Before recording", "Antes de grabar"),
         lang.pick(
             "L'enregistreur capture une image de la fenêtre à chaque clic et le texte que vous tapez entre deux clics — y compris un mot de passe tapé par erreur. Rien ne quitte cet ordinateur. Après l'arrêt, relisez les étapes : vous pouvez masquer un texte saisi, retirer une capture ou supprimer une étape avant d'exporter. Sur un poste géré, vérifiez que la capture clavier est autorisée.",
             "The recorder takes a picture of the window at each click and keeps the text you type between clicks — including a password typed by mistake. Nothing leaves this computer. After stopping, review the steps: you can redact typed text, remove a screenshot or delete a step before exporting. On a managed workstation, check that keyboard capture is allowed.",
+            "El grabador captura una imagen de la ventana en cada clic y el texto que escribes entre clics, incluida una contraseña escrita por error. Nada sale de este equipo. Al detener la grabación, revisa los pasos: puedes ocultar un texto introducido, quitar una captura o eliminar un paso antes de exportar. En un equipo administrado, comprueba que se permite la captura del teclado.",
         ),
         |ui| {
             if widgets::button(
                 ui,
                 Kind::Record,
                 Some(Icon::Record),
-                lang.pick("J'ai compris, enregistrer", "I understand, record"),
+                lang.pick(
+                    "J'ai compris, enregistrer",
+                    "I understand, record",
+                    "Entendido, grabar",
+                ),
             )
             .clicked()
             {
                 choice = 1;
             }
-            if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel")).clicked()
+            if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel", "Cancelar")).clicked()
                 || ui.input(|i| i.key_pressed(egui::Key::Escape))
             {
                 choice = 2;
@@ -188,18 +216,26 @@ pub fn guide_info(app: &mut App, ctx: &egui::Context) {
         .show(ctx, |ui| {
             ui.set_width(460.0);
             ui.label(
-                RichText::new(lang.pick("Détails du guide", "Guide details"))
-                    .size(18.0)
-                    .strong()
-                    .color(p.text),
+                RichText::new(lang.pick(
+                    "Détails du guide",
+                    "Guide details",
+                    "Detalles de la guía",
+                ))
+                .size(18.0)
+                .strong()
+                .color(p.text),
             );
             ui.add_space(8.0);
-            widgets::eyebrow(ui, lang.pick("Titre", "Title"));
+            widgets::eyebrow(ui, lang.pick("Titre", "Title", "Título"));
             ui.add(egui::TextEdit::singleline(&mut title).desired_width(f32::INFINITY));
             ui.add_space(6.0);
             widgets::eyebrow(
                 ui,
-                lang.pick("Introduction (facultative)", "Introduction (optional)"),
+                lang.pick(
+                    "Introduction (facultative)",
+                    "Introduction (optional)",
+                    "Introducción (opcional)",
+                ),
             );
             ui.add(
                 egui::TextEdit::multiline(&mut intro)
@@ -212,13 +248,19 @@ pub fn guide_info(app: &mut App, ctx: &egui::Context) {
                     ui,
                     Kind::Primary,
                     Some(Icon::Check),
-                    lang.pick("Valider", "Apply"),
+                    lang.pick("Valider", "Apply", "Aplicar"),
                 )
                 .clicked()
                 {
                     choice = 1;
                 }
-                if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel")).clicked()
+                if widgets::button(
+                    ui,
+                    Kind::Ghost,
+                    None,
+                    lang.pick("Annuler", "Cancel", "Cancelar"),
+                )
+                .clicked()
                     || ui.input(|i| i.key_pressed(egui::Key::Escape))
                 {
                     choice = 2;
@@ -259,10 +301,15 @@ pub fn image_choice(app: &mut App, ctx: &egui::Context) {
         "image_choice",
         Icon::Image,
         p.accent_text,
-        lang.pick("Utiliser cette image pour…", "Use this image for…"),
+        lang.pick(
+            "Utiliser cette image pour…",
+            "Use this image for…",
+            "Usar esta imagen para…",
+        ),
         lang.pick(
             "Le fichier d'origine n'est pas modifié : une copie est ajoutée au guide.",
             "The original file is not modified: a copy is added to the guide.",
+            "El archivo original no se modifica: se añade una copia a la guía.",
         ),
         |ui| {
             let replace = if has_shot {
@@ -270,13 +317,18 @@ pub fn image_choice(app: &mut App, ctx: &egui::Context) {
                     "{} {number}",
                     lang.pick(
                         "Remplacer la capture de l'étape",
-                        "Replace the screenshot of step"
+                        "Replace the screenshot of step",
+                        "Reemplazar la captura del paso"
                     )
                 )
             } else {
                 format!(
                     "{} {number}",
-                    lang.pick("L'ajouter à l'étape", "Attach it to step")
+                    lang.pick(
+                        "L'ajouter à l'étape",
+                        "Attach it to step",
+                        "Añadirla al paso",
+                    )
                 )
             };
             if widgets::button(ui, Kind::Primary, Some(Icon::Image), &replace).clicked() {
@@ -288,14 +340,24 @@ pub fn image_choice(app: &mut App, ctx: &egui::Context) {
                 Some(Icon::Plus),
                 &format!(
                     "{} {number}",
-                    lang.pick("Nouvelle étape après l'étape", "New step after step")
+                    lang.pick(
+                        "Nouvelle étape après l'étape",
+                        "New step after step",
+                        "Nuevo paso después del paso",
+                    )
                 ),
             )
             .clicked()
             {
                 choice = 2;
             }
-            if widgets::button(ui, Kind::Ghost, None, lang.pick("Annuler", "Cancel")).clicked()
+            if widgets::button(
+                ui,
+                Kind::Ghost,
+                None,
+                lang.pick("Annuler", "Cancel", "Cancelar"),
+            )
+            .clicked()
                 || ui.input(|i| i.key_pressed(egui::Key::Escape))
             {
                 choice = 3;
@@ -309,7 +371,7 @@ pub fn image_choice(app: &mut App, ctx: &egui::Context) {
         }
         2 => {
             app.pending_image = None;
-            let title = app.t("Nouvelle étape", "New step");
+            let title = app.t("Nouvelle étape", "New step", "Nuevo paso");
             if let Some(id) = app.edit(|d| {
                 let pos = d
                     .position(pending.target)
@@ -362,7 +424,7 @@ pub fn notice(app: &mut App, ctx: &egui::Context) {
 
 /// A save, export, open or import running in the background.
 pub fn job_progress(app: &App, ctx: &egui::Context, activity: Option<&str>) {
-    let Some((fr, en)) = app.job_title() else {
+    let Some((fr, en, es)) = app.job_title() else {
         return;
     };
     let lang = app.lang;
@@ -374,7 +436,7 @@ pub fn job_progress(app: &App, ctx: &egui::Context, activity: Option<&str>) {
             ui.horizontal(|ui| {
                 ui.add(egui::Spinner::new().size(22.0).color(p.accent));
                 ui.label(
-                    RichText::new(lang.pick(fr, en))
+                    RichText::new(lang.pick(fr, en, es))
                         .size(18.0)
                         .strong()
                         .color(p.text),
@@ -382,8 +444,12 @@ pub fn job_progress(app: &App, ctx: &egui::Context, activity: Option<&str>) {
             });
             ui.add_space(4.0);
             ui.label(
-                RichText::new(activity.unwrap_or(lang.pick("Préparation…", "Preparing…")))
-                    .color(p.text_muted),
+                RichText::new(activity.unwrap_or(lang.pick(
+                    "Préparation…",
+                    "Preparing…",
+                    "Preparando…",
+                )))
+                .color(p.text_muted),
             );
             if let Some(dest) = app.job_dest() {
                 ui.add_space(6.0);
@@ -431,9 +497,14 @@ pub fn enlarged(app: &mut App, ctx: &egui::Context) {
             let inner = screen.shrink(12.0);
             let mut child = ui.new_child(egui::UiBuilder::new().max_rect(inner));
             child.horizontal(|ui| {
-                if widgets::button(ui, Kind::Secondary, None, lang.pick("Fermer", "Close"))
-                    .on_hover_text(lang.pick("Échap", "Esc"))
-                    .clicked()
+                if widgets::button(
+                    ui,
+                    Kind::Secondary,
+                    None,
+                    lang.pick("Fermer", "Close", "Cerrar"),
+                )
+                .on_hover_text(lang.pick("Échap", "Esc", "Esc"))
+                .clicked()
                 {
                     close = true;
                 }
@@ -441,7 +512,7 @@ pub fn enlarged(app: &mut App, ctx: &egui::Context) {
                     ui.label(
                         RichText::new(format!(
                             "{} {} · {}",
-                            lang.pick("Étape", "Step"),
+                            lang.pick("Étape", "Step", "Paso"),
                             row.index,
                             row.description(lang)
                         ))
