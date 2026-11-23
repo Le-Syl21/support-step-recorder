@@ -81,6 +81,12 @@ fn run(rx: Receiver<Job>, progress: Progress, lang: crate::i18n::Lang) {
 }
 
 fn write_job(job: Job) -> std::io::Result<()> {
+    // Off Linux, Pixels only has Rgba and the match is infallible; the portal arm
+    // needs it on Linux.
+    #[cfg_attr(
+        not(target_os = "linux"),
+        allow(clippy::infallible_destructuring_match)
+    )]
     let image = match job.pixels {
         Pixels::Rgba(img) => img,
         #[cfg(target_os = "linux")]
