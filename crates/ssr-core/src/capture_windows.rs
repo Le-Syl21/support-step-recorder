@@ -16,7 +16,7 @@ use windows_capture::settings::{
 };
 use windows_capture::window::Window;
 
-use crate::capture::draw_click_marker;
+use crate::capture::{draw_click_marker, Grab, GrabError};
 use crate::model::WindowInfo;
 
 type Slot = Arc<Mutex<Option<RgbaImage>>>;
@@ -54,18 +54,28 @@ impl GraphicsCaptureApiHandler for OneShot {
     }
 }
 
-/// Capture la fenêtre au premier plan pour un clic. `None` si c'est notre propre
-/// fenêtre (l'IHM du recorder) ou si la capture échoue.
-pub fn capture_for_click(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<WindowInfo>)> {
-    let window = Window::foreground().ok()?;
+/// Capture la fenêtre au premier plan pour un clic. `OwnWindow` si c'est notre
+/// propre fenêtre (l'IHM du recorder), `Failed` si la capture échoue. Appelée
+/// depuis un thread surveillé (timeout) : `start` peut ne jamais rendre la main.
+pub fn capture_for_click(pos: Option<(i32, i32)>) -> Grab {
+    let window = Window::foreground().map_err(|_| GrabError::Failed)?;
 
     // Ne jamais capturer notre propre fenêtre (Stop, panneau de revue…).
-    let pid = window.process_id().ok()?;
+    let pid = window.process_id().map_err(|_| GrabError::Failed)?;
     if pid == std::process::id() {
-        return None;
+        return Err(GrabError::OwnWindow);
     }
 
-    let rect = window.rect().ok()?;
+    let rect = window.rect().map_err(|_| GrabError::Failed)?;
+    // Fenêtre réduite (Windows la range à -32000) ou vide : WGC ne livrerait
+    // jamais de frame. On laisse le repli capturer l'écran.
+    if rect.left <= -30_000
+        || rect.top <= -30_000
+        || rect.right - rect.left < 8
+        || rect.bottom - rect.top < 8
+    {
+        return Err(GrabError::Failed);
+    }
     let info = WindowInfo {
         title: window.title().unwrap_or_default(),
         app_name: window.process_name().unwrap_or_default(),
@@ -89,11 +99,15 @@ pub fn capture_for_click(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<W
     );
 
     // Bloque jusqu'à ce que `on_frame_arrived` appelle `stop()` (une frame).
-    OneShot::start(settings).ok()?;
+    OneShot::start(settings).map_err(|_| GrabError::Failed)?;
 
-    let mut image = slot.lock().ok()?.take()?;
+    let mut image = slot
+        .lock()
+        .ok()
+        .and_then(|mut s| s.take())
+        .ok_or(GrabError::Failed)?;
     if let Some((px, py)) = pos {
         draw_click_marker(&mut image, px - info.x, py - info.y);
     }
-    Some((image, Some(info)))
+    Ok((image, Some(info)))
 }
