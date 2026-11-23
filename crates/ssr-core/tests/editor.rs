@@ -278,6 +278,13 @@ fn a18_titles_and_languages() {
     assert!(doc.steps()[1]
         .display_title(Lang::Fr)
         .starts_with("Clic droit"));
+    assert!(doc.steps()[1]
+        .display_title(Lang::Es)
+        .starts_with("Clic derecho en "));
+    assert_eq!(
+        doc.steps()[0].display_title(Lang::Es),
+        "Ouvrir les paramètres"
+    );
     doc.close();
 }
 

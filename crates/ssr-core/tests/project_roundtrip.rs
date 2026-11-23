@@ -193,6 +193,21 @@ fn a17_empty_guide_exports() {
     doc.close();
 }
 
+/// An empty guide exported in Spanish carries `lang="es"` and Spanish UI text.
+#[test]
+fn export_in_spanish() {
+    let scratch = Scratch::new("export_es");
+    let doc = new_doc(&scratch);
+    let zip = scratch.path("es.zip");
+    export::export_guide(&doc.snapshot(), &zip, &Progress::new(), Lang::Es).unwrap();
+    let html = String::from_utf8(zip_member(&zip, "report.html")).unwrap();
+    assert!(html.contains("<html lang=\"es\">"));
+    assert!(html.contains("Modo de reproducción"));
+    assert!(html.contains("Siguiente"));
+    assert!(!html.contains("Mode relecture"));
+    doc.close();
+}
+
 /// A15: exporting to a place that cannot be written fails cleanly, and an
 /// earlier export at the same path is left intact.
 #[test]

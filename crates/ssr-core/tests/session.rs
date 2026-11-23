@@ -77,6 +77,12 @@ fn records_text_then_click_and_exports() {
     assert!(html.contains("Bonjour"));
     assert!(html.contains("Support Step Recorder"));
 
+    // Même session, rapport en espagnol.
+    export::write_report(&session, Lang::Es).unwrap();
+    let html_es = fs::read_to_string(dir.join("report.html")).unwrap();
+    assert!(html_es.contains("lang=\"es\""));
+    assert!(html_es.contains("Paso"));
+
     let _ = fs::remove_dir_all(&dir);
     let _ = fs::remove_file(&zip);
 }

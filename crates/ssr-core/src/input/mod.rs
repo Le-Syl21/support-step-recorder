@@ -29,7 +29,7 @@ pub enum Button {
 impl Button {
     /// Libellé du bouton dans la langue donnée.
     pub fn label(self, lang: crate::i18n::Lang) -> String {
-        use crate::i18n::Lang::{En, Fr};
+        use crate::i18n::Lang::{En, Es, Fr};
         match (lang, self) {
             (Fr, Button::Left) => "gauche".into(),
             (Fr, Button::Middle) => "milieu".into(),
@@ -39,6 +39,10 @@ impl Button {
             (En, Button::Middle) => "middle".into(),
             (En, Button::Right) => "right".into(),
             (En, Button::Other(n)) => format!("button {n}"),
+            (Es, Button::Left) => "izquierdo".into(),
+            (Es, Button::Middle) => "central".into(),
+            (Es, Button::Right) => "derecho".into(),
+            (Es, Button::Other(n)) => format!("botón {n}"),
         }
     }
 }

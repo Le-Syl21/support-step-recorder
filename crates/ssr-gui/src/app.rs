@@ -62,69 +62,112 @@ pub enum Status {
 impl Status {
     pub fn text(&self, lang: Lang) -> String {
         match self {
-            Status::Ready => lang.pick("Prêt.", "Ready.").into(),
+            Status::Ready => lang.pick("Prêt.", "Ready.", "Listo.").into(),
             Status::Recording(backend) => {
-                format!("{} [{backend}]…", lang.pick("Enregistrement", "Recording"))
+                format!(
+                    "{} [{backend}]…",
+                    lang.pick("Enregistrement", "Recording", "Grabando")
+                )
             }
             Status::Stopped(n) => format!(
                 "{} {n} {}",
-                lang.pick("Enregistrement arrêté —", "Recording stopped —"),
+                lang.pick(
+                    "Enregistrement arrêté —",
+                    "Recording stopped —",
+                    "Grabación detenida —"
+                ),
                 lang.pick(
                     "étape(s). Relisez et modifiez le guide.",
-                    "step(s). Review and edit the guide."
+                    "step(s). Review and edit the guide.",
+                    "paso(s). Revisa y edita la guía."
                 )
             ),
             Status::StartFailed(err) => {
                 format!(
                     "{} {err}",
-                    lang.pick("Échec du démarrage :", "Start failed:")
+                    lang.pick("Échec du démarrage :", "Start failed:", "Error al iniciar:")
                 )
             }
-            Status::Working => lang.pick("Traitement…", "Working…").into(),
+            Status::Working => lang.pick("Traitement…", "Working…", "Procesando…").into(),
             Status::Exported(path) => {
                 format!(
                     "{} {}",
-                    lang.pick("Guide exporté :", "Guide exported:"),
+                    lang.pick("Guide exporté :", "Guide exported:", "Guía exportada:"),
                     path.display()
                 )
             }
             Status::ExportFailed(err) => {
                 format!(
                     "{} {err}",
-                    lang.pick("Échec de l'export :", "Export failed:")
+                    lang.pick(
+                        "Échec de l'export :",
+                        "Export failed:",
+                        "Error al exportar:"
+                    )
                 )
             }
             Status::Saved(path) => {
                 format!(
                     "{} {}",
-                    lang.pick("Projet enregistré :", "Project saved:"),
+                    lang.pick(
+                        "Projet enregistré :",
+                        "Project saved:",
+                        "Proyecto guardado:"
+                    ),
                     path.display()
                 )
             }
             Status::SaveFailed(err) => format!(
                 "{} {err}",
-                lang.pick("Échec de l'enregistrement :", "Save failed:")
+                lang.pick(
+                    "Échec de l'enregistrement :",
+                    "Save failed:",
+                    "Error al guardar:"
+                )
             ),
-            Status::Opened(title) => format!("{} {title}", lang.pick("Ouvert :", "Opened:")),
+            Status::Opened(title) => {
+                format!("{} {title}", lang.pick("Ouvert :", "Opened:", "Abierto:"))
+            }
             Status::OpenFailed(err) => {
                 format!(
                     "{} {err}",
-                    lang.pick("Ouverture impossible :", "Could not open:")
+                    lang.pick(
+                        "Ouverture impossible :",
+                        "Could not open:",
+                        "No se pudo abrir:"
+                    )
                 )
             }
             Status::Imported(n) => format!(
                 "{n} {}",
-                lang.pick("étape(s) importée(s).", "step(s) imported.")
+                lang.pick(
+                    "étape(s) importée(s).",
+                    "step(s) imported.",
+                    "paso(s) importado(s)."
+                )
             ),
-            Status::Undone(k) => format!("{} {}", lang.pick("Annulé :", "Undone:"), k.label(lang)),
-            Status::Redone(k) => format!("{} {}", lang.pick("Rétabli :", "Redone:"), k.label(lang)),
+            Status::Undone(k) => format!(
+                "{} {}",
+                lang.pick("Annulé :", "Undone:", "Deshecho:"),
+                k.label(lang)
+            ),
+            Status::Redone(k) => format!(
+                "{} {}",
+                lang.pick("Rétabli :", "Redone:", "Rehecho:"),
+                k.label(lang)
+            ),
             Status::Interrupted => lang
-                .pick("Opération interrompue.", "Operation interrupted.")
+                .pick(
+                    "Opération interrompue.",
+                    "Operation interrupted.",
+                    "Operación interrumpida.",
+                )
                 .into(),
             Status::Discarded => lang
                 .pick(
                     "Guide fermé sans enregistrer.",
                     "Guide closed without saving.",
+                    "Guía cerrada sin guardar.",
                 )
                 .into(),
         }
@@ -180,7 +223,7 @@ enum JobResult {
 struct Job {
     rx: Receiver<JobResult>,
     /// Shown in the progress dialog.
-    pub title: (&'static str, &'static str),
+    pub title: (&'static str, &'static str, &'static str),
     pub dest: Option<PathBuf>,
 }
 
@@ -297,8 +340,8 @@ impl App {
     }
 
     /// Translation shortcut: the string in the current language.
-    pub fn t(&self, fr: &'static str, en: &'static str) -> &'static str {
-        self.lang.pick(fr, en)
+    pub fn t(&self, fr: &'static str, en: &'static str, es: &'static str) -> &'static str {
+        self.lang.pick(fr, en, es)
     }
 
     pub fn set_lang(&mut self, lang: Lang) {
@@ -321,7 +364,7 @@ impl App {
         self.job.is_some()
     }
 
-    pub fn job_title(&self) -> Option<(&'static str, &'static str)> {
+    pub fn job_title(&self) -> Option<(&'static str, &'static str, &'static str)> {
         self.job.as_ref().map(|j| j.title)
     }
 
@@ -457,10 +500,11 @@ impl App {
         };
         let title = format!(
             "{} {}",
-            self.t("Enregistrement du", "Recording of"),
+            self.t("Enregistrement du", "Recording of", "Grabación del"),
             chrono::Local::now().format(match self.lang {
                 Lang::Fr => "%d/%m/%Y %H:%M",
                 Lang::En => "%Y-%m-%d %H:%M",
+                Lang::Es => "%d/%m/%Y %H:%M",
             })
         );
         let result = match session.lock() {
@@ -480,7 +524,7 @@ impl App {
 
     fn spawn(
         &mut self,
-        title: (&'static str, &'static str),
+        title: (&'static str, &'static str, &'static str),
         dest: Option<PathBuf>,
         work: impl FnOnce(&Progress) -> JobResult + Send + 'static,
     ) {
@@ -531,6 +575,7 @@ impl App {
                         self.t(
                             "Certaines images n'ont pas pu être reprises",
                             "Some images could not be brought in",
+                            "No se pudieron incorporar algunas imágenes",
                         )
                         .into(),
                         warnings,
@@ -539,8 +584,11 @@ impl App {
             }
             JobResult::ForImport { recordings, errors } => {
                 if !errors.is_empty() {
-                    self.notice =
-                        Some((self.t("Import impossible", "Import failed").into(), errors));
+                    self.notice = Some((
+                        self.t("Import impossible", "Import failed", "No se pudo importar")
+                            .into(),
+                        errors,
+                    ));
                 }
                 if !recordings.is_empty() {
                     self.import = Some(ImportDialog::new(recordings));
@@ -576,9 +624,12 @@ impl App {
                 let name = format!("{}.{PROJECT_EXT}", steps::file_stem(&doc.metadata().title));
                 let mut d = self
                     .dialog()
-                    .set_title(self.t("Enregistrer le projet", "Save project"))
+                    .set_title(self.t("Enregistrer le projet", "Save project", "Guardar proyecto"))
                     .set_file_name(name)
-                    .add_filter(self.t("Projet SSR", "SSR project"), &[PROJECT_EXT]);
+                    .add_filter(
+                        self.t("Projet SSR", "SSR project", "Proyecto SSR"),
+                        &[PROJECT_EXT],
+                    );
                 if let Some(dir) = doc.project_path().and_then(|p| p.parent()) {
                     d = d.set_directory(dir);
                 }
@@ -594,7 +645,7 @@ impl App {
                     if path.exists() {
                         self.status = Status::SaveFailed(format!(
                             "{} {}",
-                            self.t("existe déjà :", "already exists:"),
+                            self.t("existe déjà :", "already exists:", "ya existe:"),
                             path.display()
                         ));
                         return;
@@ -606,7 +657,11 @@ impl App {
         let snap = doc.snapshot();
         let lang = self.lang;
         self.spawn(
-            ("Enregistrement du projet…", "Saving project…"),
+            (
+                "Enregistrement du projet…",
+                "Saving project…",
+                "Guardando el proyecto…",
+            ),
             Some(target.clone()),
             move |_| match ssr_core::project::save_project(&snap, &target) {
                 Ok(()) => JobResult::Saved {
@@ -630,9 +685,13 @@ impl App {
             .set_title(self.t(
                 "Exporter le guide (ZIP + HTML)",
                 "Export guide (ZIP + HTML)",
+                "Exportar guía (ZIP + HTML)",
             ))
             .set_file_name(name)
-            .add_filter(self.t("Archive ZIP", "ZIP archive"), &["zip"]);
+            .add_filter(
+                self.t("Archive ZIP", "ZIP archive", "Archivo ZIP"),
+                &["zip"],
+            );
         if let Some(dir) = doc.export_path().and_then(|p| p.parent()) {
             d = d.set_directory(dir);
         }
@@ -647,6 +706,7 @@ impl App {
                 self.t(
                     "c'est le fichier du projet ; choisissez un autre nom.",
                     "that is the project file; choose another name.",
+                    "es el archivo del proyecto; elige otro nombre.",
                 )
                 .into(),
             );
@@ -655,7 +715,11 @@ impl App {
         let snap = doc.snapshot();
         let lang = self.lang;
         self.spawn(
-            ("Export du guide…", "Exporting guide…"),
+            (
+                "Export du guide…",
+                "Exporting guide…",
+                "Exportando la guía…",
+            ),
             Some(path.clone()),
             move |progress| match export::export_guide(&snap, &path, progress, lang) {
                 Ok(()) => JobResult::Exported {
@@ -670,8 +734,11 @@ impl App {
     fn open_project(&mut self) {
         let Some(path) = self
             .dialog()
-            .set_title(self.t("Ouvrir un projet", "Open project"))
-            .add_filter(self.t("Projet SSR", "SSR project"), &[PROJECT_EXT])
+            .set_title(self.t("Ouvrir un projet", "Open project", "Abrir proyecto"))
+            .add_filter(
+                self.t("Projet SSR", "SSR project", "Proyecto SSR"),
+                &[PROJECT_EXT],
+            )
             .pick_file()
         else {
             return;
@@ -683,9 +750,17 @@ impl App {
     fn open_recording(&mut self) {
         let Some(path) = self
             .dialog()
-            .set_title(self.t("Ouvrir un enregistrement", "Open recording"))
+            .set_title(self.t(
+                "Ouvrir un enregistrement",
+                "Open recording",
+                "Abrir grabación",
+            ))
             .add_filter(
-                self.t("Enregistrement ou projet", "Recording or project"),
+                self.t(
+                    "Enregistrement ou projet",
+                    "Recording or project",
+                    "Grabación o proyecto",
+                ),
                 &["zip", PROJECT_EXT],
             )
             .pick_file()
@@ -706,7 +781,11 @@ impl App {
         let lang = self.lang;
         if path.extension().and_then(|e| e.to_str()) == Some(PROJECT_EXT) {
             self.spawn(
-                ("Ouverture du projet…", "Opening project…"),
+                (
+                    "Ouverture du projet…",
+                    "Opening project…",
+                    "Abriendo el proyecto…",
+                ),
                 Some(path.clone()),
                 move |_| {
                     let ws = match Workspace::create() {
@@ -728,7 +807,11 @@ impl App {
             return;
         }
         self.spawn(
-            ("Ouverture de l'enregistrement…", "Opening recording…"),
+            (
+                "Ouverture de l'enregistrement…",
+                "Opening recording…",
+                "Abriendo la grabación…",
+            ),
             Some(path.clone()),
             move |_| {
                 let fail = |e: String| JobResult::Failed(Status::OpenFailed(e));
@@ -780,9 +863,14 @@ impl App {
             .set_title(self.t(
                 "Importer des étapes d'enregistrements",
                 "Import steps from recordings",
+                "Importar pasos de grabaciones",
             ))
             .add_filter(
-                self.t("Enregistrement ou projet", "Recording or project"),
+                self.t(
+                    "Enregistrement ou projet",
+                    "Recording or project",
+                    "Grabación o proyecto",
+                ),
                 &["zip", PROJECT_EXT],
             )
             .pick_files()
@@ -797,7 +885,11 @@ impl App {
         let limits = self.limits.clone();
         let lang = self.lang;
         self.spawn(
-            ("Lecture des enregistrements…", "Reading recordings…"),
+            (
+                "Lecture des enregistrements…",
+                "Reading recordings…",
+                "Leyendo las grabaciones…",
+            ),
             None,
             move |_| {
                 let mut recordings = Vec::new();
@@ -826,7 +918,7 @@ impl App {
         }
         let Some(path) = self
             .dialog()
-            .set_title(self.t("Ajouter une image", "Add image"))
+            .set_title(self.t("Ajouter une image", "Add image", "Añadir imagen"))
             .add_filter("Image", &["png", "jpg", "jpeg", "webp"])
             .pick_file()
         else {
@@ -1098,7 +1190,7 @@ impl App {
             .and_then(|id| doc.position(id))
             .map(|p| p + 1)
             .unwrap_or(doc.steps().len());
-        let title = self.t("Nouvelle étape", "New step");
+        let title = self.t("Nouvelle étape", "New step", "Nuevo paso");
         if let Some(id) = self.edit(|d| d.add_manual_step(pos, title, None)) {
             self.select(id);
         }

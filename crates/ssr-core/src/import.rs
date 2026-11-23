@@ -65,97 +65,93 @@ pub enum ImportError {
 impl ImportError {
     /// The message shown to the user.
     pub fn message(&self, lang: Lang) -> String {
-        let fr = lang == Lang::Fr;
         match self {
             ImportError::Io(e) => format!(
                 "{} {e}",
-                if fr {
-                    "Erreur de lecture :"
-                } else {
-                    "Read error:"
-                }
+                lang.pick("Erreur de lecture :", "Read error:", "Error de lectura:")
             ),
             ImportError::NotAnArchive(e) => {
-                if fr {
-                    format!("Ce fichier n'est pas une archive ZIP lisible ({e}).")
-                } else {
-                    format!("This file is not a readable ZIP archive ({e}).")
+                match lang {
+                    Lang::Fr => format!("Ce fichier n'est pas une archive ZIP lisible ({e})."),
+                    Lang::En => format!("This file is not a readable ZIP archive ({e})."),
+                    Lang::Es => format!("Este archivo no es un ZIP legible ({e})."),
                 }
             }
             ImportError::UnsafePath(n) => {
-                if fr {
-                    format!("Archive refusée : chemin dangereux « {n} ».")
-                } else {
-                    format!("Archive refused: unsafe path “{n}”.")
+                match lang {
+                    Lang::Fr => format!("Archive refusée : chemin dangereux « {n} »."),
+                    Lang::En => format!("Archive refused: unsafe path “{n}”."),
+                    Lang::Es => format!("Archivo rechazado: ruta peligrosa «{n}»."),
                 }
             }
             ImportError::Symlink(n) => {
-                if fr {
-                    format!("Archive refusée : lien symbolique « {n} ».")
-                } else {
-                    format!("Archive refused: symbolic link “{n}”.")
+                match lang {
+                    Lang::Fr => format!("Archive refusée : lien symbolique « {n} »."),
+                    Lang::En => format!("Archive refused: symbolic link “{n}”."),
+                    Lang::Es => format!("Archivo rechazado: enlace simbólico «{n}»."),
                 }
             }
             ImportError::DuplicateEntry(n) => {
-                if fr {
-                    format!("Archive refusée : entrées en double ({n}).")
-                } else {
-                    format!("Archive refused: duplicate entries ({n}).")
+                match lang {
+                    Lang::Fr => format!("Archive refusée : entrées en double ({n})."),
+                    Lang::En => format!("Archive refused: duplicate entries ({n})."),
+                    Lang::Es => format!("Archivo rechazado: entradas duplicadas ({n})."),
                 }
             }
             ImportError::TooManyEntries(n) => {
-                if fr {
-                    format!("Archive refusée : trop de fichiers ({n}).")
-                } else {
-                    format!("Archive refused: too many files ({n}).")
+                match lang {
+                    Lang::Fr => format!("Archive refusée : trop de fichiers ({n})."),
+                    Lang::En => format!("Archive refused: too many files ({n})."),
+                    Lang::Es => format!("Archivo rechazado: demasiados archivos ({n})."),
                 }
             }
             ImportError::TooManySteps(n) => {
-                if fr {
-                    format!("Trop d'étapes dans cet enregistrement ({n}).")
-                } else {
-                    format!("Too many steps in this recording ({n}).")
+                match lang {
+                    Lang::Fr => format!("Trop d'étapes dans cet enregistrement ({n})."),
+                    Lang::En => format!("Too many steps in this recording ({n})."),
+                    Lang::Es => format!("Demasiados pasos en esta grabación ({n})."),
                 }
             }
             ImportError::TooLarge(n) => {
-                if fr {
-                    format!("Contenu trop volumineux : {n}.")
-                } else {
-                    format!("Content too large: {n}.")
+                match lang {
+                    Lang::Fr => format!("Contenu trop volumineux : {n}."),
+                    Lang::En => format!("Content too large: {n}."),
+                    Lang::Es => format!("Contenido demasiado grande: {n}."),
                 }
             }
             ImportError::MissingManifest => lang
                 .pick(
                     "Ce n'est pas un enregistrement Support Step Recorder (steps.json absent).",
                     "This is not a Support Step Recorder recording (no steps.json).",
+                    "Esto no es una grabación de Support Step Recorder (falta steps.json).",
                 )
                 .into(),
             ImportError::MissingMember(n) => {
-                if fr {
-                    format!("Fichier manquant dans l'archive : {n}.")
-                } else {
-                    format!("File missing from the archive: {n}.")
+                match lang {
+                    Lang::Fr => format!("Fichier manquant dans l'archive : {n}."),
+                    Lang::En => format!("File missing from the archive: {n}."),
+                    Lang::Es => format!("Falta un archivo en el comprimido: {n}."),
                 }
             }
             ImportError::BadManifest(e) => {
-                if fr {
-                    format!("Fichier de description illisible : {e}.")
-                } else {
-                    format!("Unreadable description file: {e}.")
+                match lang {
+                    Lang::Fr => format!("Fichier de description illisible : {e}."),
+                    Lang::En => format!("Unreadable description file: {e}."),
+                    Lang::Es => format!("Archivo de descripción ilegible: {e}."),
                 }
             }
             ImportError::UnsupportedVersion(v) => {
-                if fr {
-                    format!("Ce projet a été créé par une version plus récente (format {v}). Mettez Support Step Recorder à jour pour l'ouvrir ; il n'a pas été modifié.")
-                } else {
-                    format!("This project was made by a newer version (format {v}). Update Support Step Recorder to open it; it was not modified.")
+                match lang {
+                    Lang::Fr => format!("Ce projet a été créé par une version plus récente (format {v}). Mettez Support Step Recorder à jour pour l'ouvrir ; il n'a pas été modifié."),
+                    Lang::En => format!("This project was made by a newer version (format {v}). Update Support Step Recorder to open it; it was not modified."),
+                    Lang::Es => format!("Este proyecto fue creado con una versión más reciente (formato {v}). Actualice Support Step Recorder para abrirlo; no se ha modificado."),
                 }
             }
             ImportError::BadImage(e) => {
-                if fr {
-                    format!("Image refusée : {e}.")
-                } else {
-                    format!("Image refused: {e}.")
+                match lang {
+                    Lang::Fr => format!("Image refusée : {e}."),
+                    Lang::En => format!("Image refused: {e}."),
+                    Lang::Es => format!("Imagen rechazada: {e}."),
                 }
             }
         }

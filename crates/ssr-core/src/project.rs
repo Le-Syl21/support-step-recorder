@@ -42,7 +42,7 @@ pub struct ProjectMetadata {
     /// Short introduction shown at the top of the report.
     #[serde(default)]
     pub description: String,
-    /// Language the guide was written in ("fr" / "en").
+    /// Language the guide was written in ("fr" / "en" / "es").
     #[serde(default)]
     pub language: String,
     /// RFC 3339.
@@ -81,11 +81,7 @@ impl ProjectMetadata {
     }
 
     pub fn lang(&self) -> Lang {
-        if self.language == "en" {
-            Lang::En
-        } else {
-            Lang::Fr
-        }
+        Lang::from_code(&self.language).unwrap_or(Lang::Fr)
     }
 }
 
@@ -112,6 +108,7 @@ impl SaveError {
             SaveError::MissingAsset(a) => match lang {
                 Lang::Fr => format!("Image introuvable dans l'espace de travail : {a}. Retirez la capture de l'étape concernée puis réessayez."),
                 Lang::En => format!("Image missing from the workspace: {a}. Remove the screenshot from that step and try again."),
+                Lang::Es => format!("Imagen no encontrada en el espacio de trabajo: {a}. Quite la captura del paso correspondiente e inténtelo de nuevo."),
             },
         }
     }
