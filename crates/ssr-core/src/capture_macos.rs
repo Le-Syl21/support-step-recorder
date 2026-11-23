@@ -13,22 +13,26 @@ use screencapturekit::shareable_content::SCShareableContent;
 use screencapturekit::stream::configuration::SCStreamConfiguration;
 use screencapturekit::stream::content_filter::SCContentFilter;
 
-use crate::capture::draw_click_marker;
+use crate::capture::{draw_click_marker, Grab, GrabError};
 use crate::model::WindowInfo;
 
 /// Capture la fenêtre au premier plan pour un clic. `None` si c'est notre propre
 /// fenêtre ou si la capture échoue.
-pub fn capture_for_click(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<WindowInfo>)> {
-    let content = SCShareableContent::get().ok()?;
+pub fn capture_for_click(pos: Option<(i32, i32)>) -> Grab {
+    let content = SCShareableContent::get().map_err(|_| GrabError::Failed)?;
     let own_pid = std::process::id() as i32;
 
     // `windows()` est ordonné de l'avant vers l'arrière : la première fenêtre
     // normale (layer 0) visible, qui n'est pas la nôtre, approxime le focus.
-    let window = content.windows().into_iter().find(|w| {
-        w.is_on_screen()
-            && w.window_layer() == 0
-            && w.owning_application().map(|a| a.process_id()).unwrap_or(0) != own_pid
-    })?;
+    let window = content
+        .windows()
+        .into_iter()
+        .find(|w| {
+            w.is_on_screen()
+                && w.window_layer() == 0
+                && w.owning_application().map(|a| a.process_id()).unwrap_or(0) != own_pid
+        })
+        .ok_or(GrabError::Failed)?;
 
     let frame = window.frame();
     let info = WindowInfo {
@@ -50,18 +54,18 @@ pub fn capture_for_click(pos: Option<(i32, i32)>) -> Option<(RgbaImage, Option<W
     let filter = SCContentFilter::create()
         .with_window(&window)
         .build()
-        .ok()?;
+        .map_err(|_| GrabError::Failed)?;
     let config = SCStreamConfiguration::new()
         .with_width(frame.size.width as u32)
         .with_height(frame.size.height as u32);
 
-    let cg = SCScreenshotManager::capture_image(&filter, &config).ok()?;
+    let cg = SCScreenshotManager::capture_image(&filter, &config).map_err(|_| GrabError::Failed)?;
     let (w, h) = (cg.width() as u32, cg.height() as u32);
-    let rgba = cg.rgba_data().ok()?;
+    let rgba = cg.rgba_data().map_err(|_| GrabError::Failed)?;
 
-    let mut image = RgbaImage::from_raw(w, h, rgba)?;
+    let mut image = RgbaImage::from_raw(w, h, rgba).ok_or(GrabError::Failed)?;
     if let Some((px, py)) = pos {
         draw_click_marker(&mut image, px - info.x, py - info.y);
     }
-    Some((image, Some(info)))
+    Ok((image, Some(info)))
 }
